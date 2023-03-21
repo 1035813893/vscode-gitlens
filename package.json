@@ -62,6 +62,7 @@
 		"onView:gitlens.views.tags",
 		"onView:gitlens.views.contributors",
 		"onView:gitlens.views.searchAndCompare",
+		"onView:gitlens.views.workspaces",
 		"onView:gitlens.views.worktrees",
 		"onView:gitlens.views.commitDetails",
 		"onView:gitlens.views.graphDetails",
@@ -13279,6 +13280,14 @@
 					"when": "!gitlens:disabled",
 					"contextualTitle": "GitLens",
 					"icon": "$(gitlens-tags-view)",
+					"visibility": "collapsed"
+				},
+				{
+					"id": "gitlens.views.workspaces",
+					"name": "Workspaces",
+					"when": "!gitlens:disabled",
+					"contextualTitle": "GitLens",
+					"icon": "$(gitlens-worktrees-view)",
 					"visibility": "collapsed"
 				},
 				{

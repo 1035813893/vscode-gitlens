@@ -58,6 +58,7 @@ import { StashesView } from './views/stashesView';
 import { TagsView } from './views/tagsView';
 import { ViewCommands } from './views/viewCommands';
 import { ViewFileDecorationProvider } from './views/viewDecorationProvider';
+import { WorkspacesView } from './views/workspacesView';
 import { WorktreesView } from './views/worktreesView';
 import { VslsController } from './vsls/vsls';
 import {
@@ -248,6 +249,7 @@ export class Container {
 		this._disposables.push((this._worktreesView = new WorktreesView(this)));
 		this._disposables.push((this._contributorsView = new ContributorsView(this)));
 		this._disposables.push((this._searchAndCompareView = new SearchAndCompareView(this)));
+		this._disposables.push((this._workspacesView = new WorkspacesView(this)));
 
 		this._disposables.push((this._homeView = registerHomeWebviewView(this._webviews)));
 
@@ -629,6 +631,11 @@ export class Container {
 	private readonly _vsls: VslsController;
 	get vsls() {
 		return this._vsls;
+	}
+
+	private _workspacesView: WorkspacesView;
+	get workspacesView() {
+		return this._workspacesView;
 	}
 
 	private readonly _worktreesView: WorktreesView;

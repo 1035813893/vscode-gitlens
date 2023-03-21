@@ -23,6 +23,7 @@ import type {
 	TagsViewConfig,
 	ViewsCommonConfig,
 	ViewsConfigKeys,
+	WorkspacesViewConfig,
 	WorktreesViewConfig,
 } from '../config';
 import { viewsCommonConfigKeys, viewsConfigKeys } from '../config';
@@ -48,6 +49,7 @@ import type { RepositoriesView } from './repositoriesView';
 import type { SearchAndCompareView } from './searchAndCompareView';
 import type { StashesView } from './stashesView';
 import type { TagsView } from './tagsView';
+import type { WorkspacesView } from './workspacesView';
 import type { WorktreesView } from './worktreesView';
 
 export type View =
@@ -61,6 +63,7 @@ export type View =
 	| SearchAndCompareView
 	| StashesView
 	| TagsView
+	| WorkspacesView
 	| WorktreesView;
 export type ViewsWithCommits = Exclude<View, FileHistoryView | LineHistoryView | StashesView>;
 export type ViewsWithRepositoryFolders = Exclude<View, RepositoriesView | FileHistoryView | LineHistoryView>;
@@ -82,6 +85,7 @@ export abstract class ViewBase<
 		| SearchAndCompareViewConfig
 		| StashesViewConfig
 		| TagsViewConfig
+		| WorkspacesViewConfig
 		| WorktreesViewConfig,
 > implements TreeDataProvider<ViewNode>, Disposable
 {

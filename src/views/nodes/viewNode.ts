@@ -76,6 +76,8 @@ export const enum ContextValues {
 	Tag = 'gitlens:tag',
 	Tags = 'gitlens:tags',
 	UncommittedFiles = 'gitlens:uncommitted:files',
+	Workspace = 'gitlens:workspace',
+	Workspaces = 'gitlens:workspaces',
 	Worktree = 'gitlens:worktree',
 	Worktrees = 'gitlens:worktrees',
 }
