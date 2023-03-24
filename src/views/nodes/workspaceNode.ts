@@ -1,8 +1,8 @@
 import { MarkdownString, ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import type { GitUri } from '../../git/gitUri';
+import type { GKWorkspace, WorkspaceRepositoryInfo } from '../../plus/workspaces/models';
 import { gate } from '../../system/decorators/gate';
 import { debug } from '../../system/decorators/log';
-import type { GKWorkspace } from '../../workspaces';
 import type { WorkspacesView } from '../workspacesView';
 import { MessageNode } from './common';
 import { ViewNode } from './viewNode';
@@ -28,7 +28,7 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 		return this._workspace?.name ?? '';
 	}
 
-	get repositories(): string[] {
+	get repositories(): WorkspaceRepositoryInfo[] {
 		return this._workspace?.repositories ?? [];
 	}
 
@@ -38,7 +38,7 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 		if (this._children == null) {
 			this._children = [];
 			for(const repository of this.repositories) {
-				this._children.push(new MessageNode(this.view, this, repository, 'Dummy repository', 'Dummy repository', {
+				this._children.push(new MessageNode(this.view, this, repository.name, undefined, undefined, {
 					dark: this.view.container.context.asAbsolutePath('images/dark/icon-repo.svg'),
 					light: this.view.container.context.asAbsolutePath('images/light/icon-repo.svg'),
 				}));
@@ -51,7 +51,7 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 	getTreeItem(): TreeItem {
 		this.splatted = false;
 
-		const description = 'This is a workspace!';
+		const description = '';
 		const tooltip = new MarkdownString('', true);
 		const icon: ThemeIcon = new ThemeIcon('cloud');
 

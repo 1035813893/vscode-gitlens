@@ -1,7 +1,8 @@
 import { ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
+import type { Workspace, WorkspaceRepositoryInfo, WorkspacesResponse } from '../../plus/workspaces/models';
+import { GKWorkspace } from '../../plus/workspaces/models';
 import { gate } from '../../system/decorators/gate';
 import { debug } from '../../system/decorators/log';
-import { GKWorkspace } from '../../workspaces';
 import type { WorkspacesView } from '../workspacesView';
 import { ContextValues, ViewNode } from './viewNode';
 import { WorkspaceNode } from './workspaceNode';
@@ -19,21 +20,20 @@ export class WorkspacesNode extends ViewNode<WorkspacesView> {
 		return WorkspacesNode.getId(this._type);
 	}
 
-	getChildren(): ViewNode[] {
+	async getChildren(): Promise<ViewNode[]> {
 		if (this._children == null) {
 			// TODO@ramint use workspaces API instead of hardcoded sample
-			this._children = [
-				new WorkspaceNode(this.uri, this.view, this, new GKWorkspace(
-					'1',
-					'GitLens Workspace',
-					['vscode-gitlens', 'GitKrakenComponents']
-				)),
-				new WorkspaceNode(this.uri, this.view, this, new GKWorkspace(
-					'2',
-					'GK Client Workspace',
-					['GitKraken', 'api.gitkraken.com', 'gk-payment']
-				)),
-			];
+			const children: WorkspaceNode[] = [];
+			const workspaceResponse: WorkspacesResponse | undefined = await this.view.container.workspacesApi.getWorkspacesWithRepos();
+			const workspaces = workspaceResponse?.data?.projects?.nodes;
+			if (workspaces?.length) {
+				workspaces.forEach((workspace: Workspace) => {
+					const repositories: WorkspaceRepositoryInfo[] = workspace.provider_data?.repositories?.nodes ?? [];
+					children.push(new WorkspaceNode(this.uri, this.view, this, new GKWorkspace(workspace.id, workspace.name, repositories)));
+				});
+			}
+
+			this._children = children;
 		}
 
 		return this._children;
