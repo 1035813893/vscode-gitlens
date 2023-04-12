@@ -1,6 +1,6 @@
 import { MarkdownString, ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import type { GitUri } from '../../git/gitUri';
-import type { GKWorkspace, WorkspaceRepositoryInfo } from '../../plus/workspaces/models';
+import type { GKCloudWorkspace, WorkspaceRepositoryInfo } from '../../plus/workspaces/models';
 import { gate } from '../../system/decorators/gate';
 import { debug } from '../../system/decorators/log';
 import type { WorkspacesView } from '../workspacesView';
@@ -13,8 +13,8 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 		return `gitlens${this.key}(${workspaceId})`;
 	}
 
-	private _workspace: GKWorkspace | undefined;
-	constructor(uri: GitUri, view: WorkspacesView, parent: ViewNode, public readonly workspace: GKWorkspace) {
+	private _workspace: GKCloudWorkspace | undefined;
+	constructor(uri: GitUri, view: WorkspacesView, parent: ViewNode, public readonly workspace: GKCloudWorkspace) {
 		super(uri, view, parent);
 
 		this._workspace = workspace;

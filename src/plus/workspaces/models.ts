@@ -1,4 +1,4 @@
-export class GKWorkspace {
+export class GKCloudWorkspace {
     private readonly _id: string;
     private readonly _name: string;
     private readonly _repositories: WorkspaceRepositoryInfo[];

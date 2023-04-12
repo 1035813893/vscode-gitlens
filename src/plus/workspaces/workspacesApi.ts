@@ -1,4 +1,3 @@
-import type { Disposable } from 'vscode';
 import type { Container } from '../../container';
 import { Logger } from '../../system/logger';
 import type { ServerConnection } from '../subscription/serverConnection';
@@ -7,14 +6,8 @@ import type {
 } from './models';
 
 
-export class WorkspacesApi implements Disposable {
-	// private _disposable: Disposable;
-
+export class WorkspacesApi {
 	constructor(private readonly container: Container, private readonly server: ServerConnection) {}
-
-	dispose(): void {
-		// this._disposable?.dispose();
-	}
 
 	private async getAccessToken() {
 		// TODO: should probably get scopes from somewhere
@@ -27,17 +20,25 @@ export class WorkspacesApi implements Disposable {
 		return session.accessToken;
 	}
 
-	async getWorkspacesWithRepos(): Promise<WorkspacesResponse | undefined> {
+	async getWorkspacesWithRepos(options?: { cursor?: string; page?: number }): Promise<WorkspacesResponse | undefined> {
 		const accessToken = await this.getAccessToken();
 		if (accessToken == null) {
 			return;
 		}
 
+		let queryparams = '(first: 100';
+		if (options?.cursor) {
+			queryparams += `, after: "${options.cursor}"`;
+		} else if (options?.page) {
+			queryparams += `, page: ${options.page}`;
+		}
+		queryparams += ')';
+
 		const rsp = await this.server.fetchGraphql(
 			{
 				query: `
                     query getWorkspaces {
-                        projects (first: 100) {
+                        ${queryparams} {
                             total_count
                             page_info {
                                 end_cursor
@@ -58,7 +59,6 @@ export class WorkspacesApi implements Disposable {
                                         nodes {
                                             id
                                             name
-                                            description
                                             repository_id
                                             provider
                                             url
@@ -85,5 +85,9 @@ export class WorkspacesApi implements Disposable {
 
 	async createWorkspace(): Promise<void> {}
 
-	async ensureWorkspace(): Promise<void> {}
+	async deleteWorkspace(): Promise<void> {}
+
+	async addReposToWorkspace(): Promise<void> {}
+
+	async removeReposFromWorkspace(): Promise<void> {}
 }

@@ -31,7 +31,7 @@ import {
 } from './plus/webviews/graph/registration';
 import { GraphStatusBarController } from './plus/webviews/graph/statusbar';
 import { registerTimelineWebviewPanel, registerTimelineWebviewView } from './plus/webviews/timeline/registration';
-import { WorkspacesApi } from './plus/workspaces/workspacesApi';
+import { WorkspacesService } from './plus/workspaces/workspacesService';
 import { StatusBarController } from './statusbar/statusBarController';
 import { executeCommand } from './system/command';
 import { configuration } from './system/configuration';
@@ -195,7 +195,7 @@ export class Container {
 			(this._subscriptionAuthentication = new SubscriptionAuthenticationProvider(this, server)),
 		);
 		this._disposables.push((this._subscription = new SubscriptionService(this, previousVersion)));
-		this._disposables.push((this._workspacesApi = new WorkspacesApi(this, server)));
+		this._disposables.push((this._workspaces = new WorkspacesService(this, server)));
 
 		this._disposables.push((this._git = new GitProviderService(this)));
 		this._disposables.push(new GitFileSystemProvider(this));
@@ -635,9 +635,9 @@ export class Container {
 		return this._vsls;
 	}
 
-	private _workspacesApi: WorkspacesApi;
-	get workspacesApi() {
-		return this._workspacesApi;
+	private _workspaces: WorkspacesService;
+	get workspaces() {
+		return this._workspaces;
 	}
 
 	private _workspacesView: WorkspacesView;

@@ -1,6 +1,5 @@
 import { ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
-import type { Workspace, WorkspaceRepositoryInfo, WorkspacesResponse } from '../../plus/workspaces/models';
-import { GKWorkspace } from '../../plus/workspaces/models';
+import type { GKCloudWorkspace } from '../../plus/workspaces/models';
 import { gate } from '../../system/decorators/gate';
 import { debug } from '../../system/decorators/log';
 import type { WorkspacesView } from '../workspacesView';
@@ -20,16 +19,14 @@ export class WorkspacesNode extends ViewNode<WorkspacesView> {
 		return WorkspacesNode.getId(this._type);
 	}
 
-	async getChildren(): Promise<ViewNode[]> {
+	getChildren(): ViewNode[] {
 		if (this._children == null) {
-			// TODO@ramint use workspaces API instead of hardcoded sample
+			// TODO@ramint Add local workspace nodes (and maybe current workspace)
 			const children: WorkspaceNode[] = [];
-			const workspaceResponse: WorkspacesResponse | undefined = await this.view.container.workspacesApi.getWorkspacesWithRepos();
-			const workspaces = workspaceResponse?.data?.projects?.nodes;
-			if (workspaces?.length) {
-				workspaces.forEach((workspace: Workspace) => {
-					const repositories: WorkspaceRepositoryInfo[] = workspace.provider_data?.repositories?.nodes ?? [];
-					children.push(new WorkspaceNode(this.uri, this.view, this, new GKWorkspace(workspace.id, workspace.name, repositories)));
+			const cloudWorkspaces: GKCloudWorkspace[] = this.view.container.workspaces.cloudWorkspaces;
+			if (cloudWorkspaces?.length) {
+				cloudWorkspaces.forEach((cloudWorkspace: GKCloudWorkspace) => {
+					children.push(new WorkspaceNode(this.uri, this.view, this, cloudWorkspace));
 				});
 			}
 

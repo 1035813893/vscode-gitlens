@@ -1,4 +1,4 @@
-import type { Disposable, Event } from 'vscode';
+import type { Disposable, Event, TreeViewVisibilityChangeEvent } from 'vscode';
 import { EventEmitter } from 'vscode';
 import type { WorkspacesViewConfig } from '../config';
 import type { Container } from '../container';
@@ -6,6 +6,7 @@ import { unknownGitUri } from '../git/gitUri';
 import { RepositoryFolderNode } from './nodes/viewNode';
 import { WorkspacesNode } from './nodes/workspacesNode';
 import { ViewBase } from './viewBase';
+import { registerViewCommand } from './viewCommands';
 
 export class WorkspacesView extends ViewBase<WorkspacesNode, WorkspacesViewConfig> {
 	protected readonly configKey = 'workspaces';
@@ -47,10 +48,26 @@ export class WorkspacesView extends ViewBase<WorkspacesNode, WorkspacesViewConfi
 		return node;
 	}
 
+	protected override onVisibilityChanged(e: TreeViewVisibilityChangeEvent): void {
+		super.onVisibilityChanged(e);
+		if (e.visible) {
+			void this.container.workspaces.loadWorkspaces();
+		}
+	}
+
 
 	protected registerCommands(): Disposable[] {
 		void this.container.viewCommands;
 
-		return [];
+		return [
+			registerViewCommand(
+				this.getQualifiedCommand('refresh'),
+				() => {
+					void this.container.workspaces.loadWorkspaces();
+					return this.refresh(true);
+				},
+				this,
+			),
+		];
 	}
 }
