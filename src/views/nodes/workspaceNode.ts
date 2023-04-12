@@ -1,10 +1,11 @@
 import { MarkdownString, ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import type { GitUri } from '../../git/gitUri';
-import type { GKCloudWorkspace, WorkspaceRepositoryInfo } from '../../plus/workspaces/models';
+import type { GKCloudWorkspace, WorkspaceRepositoryDescriptor } from '../../plus/workspaces/models';
 import { gate } from '../../system/decorators/gate';
 import { debug } from '../../system/decorators/log';
 import type { WorkspacesView } from '../workspacesView';
 import { MessageNode } from './common';
+import { RepositoryNode } from './repositoryNode';
 import { ViewNode } from './viewNode';
 
 export class WorkspaceNode extends ViewNode<WorkspacesView> {
@@ -28,17 +29,18 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 		return this._workspace?.name ?? '';
 	}
 
-	get repositories(): WorkspaceRepositoryInfo[] {
-		return this._workspace?.repositories ?? [];
+	private async getRepositories(): Promise<WorkspaceRepositoryDescriptor[]> {
+		return Promise.resolve(this._workspace?.repositories ?? []);
 	}
 
 	private _children: ViewNode[] | undefined;
 
-	getChildren(): ViewNode[] {
+	async getChildren(): Promise<ViewNode[]> {
 		if (this._children == null) {
 			this._children = [];
-			for(const repository of this.repositories) {
-				this._children.push(new MessageNode(this.view, this, repository.name, undefined, undefined, {
+			for (const repository of await this.getRepositories()) {
+				// TODO@ramint We will want this to be a proper WorkspacesRepositoryNode with info and interactions
+				this._children.push(new RepositoryNode(this.view, this, repository.name, undefined, undefined, {
 					dark: this.view.container.context.asAbsolutePath('images/dark/icon-repo.svg'),
 					light: this.view.container.context.asAbsolutePath('images/light/icon-repo.svg'),
 				}));
@@ -49,10 +51,11 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 	}
 
 	getTreeItem(): TreeItem {
-		this.splatted = false;
-
 		const description = '';
-		const tooltip = new MarkdownString('', true);
+		// const tooltip = new MarkdownString('', true);
+		// TODO@ramint Icon needs to change based on workspace type
+		// Note: Tooltips and commands can be resolved async too, in cases where we need to dynamically fetch the
+		// info for it
 		const icon: ThemeIcon = new ThemeIcon('cloud');
 
 		const item = new TreeItem(this.name, TreeItemCollapsibleState.Collapsed);
@@ -60,7 +63,7 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 		item.description = description;
 		item.contextValue = '';
 		item.iconPath = icon;
-		item.tooltip = tooltip;
+		item.tooltip = undefined;
 		item.resourceUri = undefined;
 		return item;
 	}

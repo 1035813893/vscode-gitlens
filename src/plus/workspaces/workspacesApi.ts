@@ -20,6 +20,9 @@ export class WorkspacesApi {
 		return session.accessToken;
 	}
 
+	// TODO@ramint: We have a pagedresponse model available in case it helps here. Takes care of cursor internally
+	// TODO@ramint: Move to a model where we split the calls. Get the workspaces, then gets repos per workspace.
+    // Make the data return a promise for the repos. Should be async so we're set up for dynamic processing.
 	async getWorkspacesWithRepos(options?: { cursor?: string; page?: number }): Promise<WorkspacesResponse | undefined> {
 		const accessToken = await this.getAccessToken();
 		if (accessToken == null) {
@@ -38,7 +41,7 @@ export class WorkspacesApi {
 			{
 				query: `
                     query getWorkspaces {
-                        ${queryparams} {
+                        projects ${queryparams} {
                             total_count
                             page_info {
                                 end_cursor
@@ -47,7 +50,6 @@ export class WorkspacesApi {
                             nodes {
                                 id
                                 name
-                                description
                                 provider
                                 provider_data {
                                     repositories (first: 100) {

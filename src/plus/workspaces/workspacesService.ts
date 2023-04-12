@@ -3,7 +3,7 @@ import type { Container } from '../../container';
 import type { ServerConnection } from '../subscription/serverConnection';
 import type {
 	Workspace,
-	WorkspaceRepositoryInfo,
+	WorkspaceRepositoryDescriptor,
 	WorkspacesResponse,
 } from './models';
 import {
@@ -17,7 +17,7 @@ export class WorkspacesService implements Disposable {
     // TODO@ramint: Implement disposable
     private _disposable: Disposable | undefined;
     // TODO@ramint: Abstract this further to include local workspaces
-    private _cloudWorkspaces: GKCloudWorkspace[] = [];
+    private _cloudWorkspaces: GKCloudWorkspace[] | undefined = undefined;
     private _workspacesApi: WorkspacesApi | undefined;
 
 	constructor(private readonly container: Container, private readonly server: ServerConnection) {
@@ -28,28 +28,31 @@ export class WorkspacesService implements Disposable {
 	dispose(): void {
 	}
 
-
-    get cloudWorkspaces(): GKCloudWorkspace[] {
-        return this._cloudWorkspaces;
-    }
-
-    async loadWorkspaces() {
+    private async loadCloudWorkspaces() {
         // Load GK cloud workspaces
         const cloudWorkspaces: GKCloudWorkspace[] = [];
         const workspaceResponse: WorkspacesResponse | undefined = await this._workspacesApi?.getWorkspacesWithRepos();
         const workspaces = workspaceResponse?.data?.projects?.nodes;
+        console.log('WORKSPACES: ', workspaces);
         if (workspaces?.length) {
-            workspaces.forEach((workspace: Workspace) => {
-                const repositories: WorkspaceRepositoryInfo[] = workspace.provider_data?.repositories?.nodes ?? [];
+            for (const workspace of workspaces) {
+                const repositories: WorkspaceRepositoryDescriptor[] = workspace.provider_data?.repositories?.nodes ?? [];
                 cloudWorkspaces.push(new GKCloudWorkspace(workspace.id, workspace.name, repositories));
-            });
+            }
         }
-        this._cloudWorkspaces = cloudWorkspaces;
-
+        return cloudWorkspaces;
         // Load GK local workspaces
         // TODO@ramint: Implement this
 
         // Load current local workspace
         // TODO@ramint: Implement this
+    }
+
+    async getWorkspaces(): Promise<GKCloudWorkspace[]> {
+        if (this._cloudWorkspaces == null) {
+            this._cloudWorkspaces = await this.loadCloudWorkspaces();
+        }
+
+        return this._cloudWorkspaces;
     }
 }

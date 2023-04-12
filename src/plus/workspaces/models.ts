@@ -1,8 +1,8 @@
 export class GKCloudWorkspace {
     private readonly _id: string;
     private readonly _name: string;
-    private readonly _repositories: WorkspaceRepositoryInfo[];
-    constructor(id: string, name: string, repositories: WorkspaceRepositoryInfo[]) {
+    private readonly _repositories: WorkspaceRepositoryDescriptor[];
+    constructor(id: string, name: string, repositories: WorkspaceRepositoryDescriptor[]) {
         this._id = id;
         this._name = name;
         this._repositories = repositories;
@@ -16,7 +16,7 @@ export class GKCloudWorkspace {
         return this._name;
     }
 
-    get repositories(): WorkspaceRepositoryInfo[] {
+    get repositories(): WorkspaceRepositoryDescriptor[] {
         return this._repositories;
     }
 }
@@ -160,7 +160,7 @@ export interface Repository {
 	has_webhook: boolean;
 }
 
-export interface WorkspaceRepositoryInfo {
+export interface WorkspaceRepositoryDescriptor {
 	id: string;
 	name: string;
 	description: string;
