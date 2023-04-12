@@ -12,6 +12,7 @@ import { pluralize } from '../../system/string';
 import type { ContactPresence } from '../../vsls/vsls';
 import type { ContributorsView } from '../contributorsView';
 import type { RepositoriesView } from '../repositoriesView';
+import type { WorkspacesView } from '../workspacesView';
 import { CommitNode } from './commitNode';
 import { LoadMoreNode, MessageNode } from './common';
 import { insertDateMarkers } from './helpers';
@@ -19,7 +20,7 @@ import { RepositoryNode } from './repositoryNode';
 import type { PageableViewNode } from './viewNode';
 import { ContextValues, ViewNode } from './viewNode';
 
-export class ContributorNode extends ViewNode<ContributorsView | RepositoriesView> implements PageableViewNode {
+export class ContributorNode extends ViewNode<ContributorsView | RepositoriesView | WorkspacesView> implements PageableViewNode {
 	static key = ':contributor';
 	static getId(
 		repoPath: string,
@@ -32,7 +33,7 @@ export class ContributorNode extends ViewNode<ContributorsView | RepositoriesVie
 
 	constructor(
 		uri: GitUri,
-		view: ContributorsView | RepositoriesView,
+		view: ContributorsView | RepositoriesView | WorkspacesView,
 		parent: ViewNode,
 		public readonly contributor: GitContributor,
 		private readonly _options?: {

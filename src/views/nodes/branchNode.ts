@@ -22,6 +22,7 @@ import type { BranchesView } from '../branchesView';
 import type { CommitsView } from '../commitsView';
 import { RemotesView } from '../remotesView';
 import type { RepositoriesView } from '../repositoriesView';
+import type { WorkspacesView } from '../workspacesView';
 import { BranchTrackingStatusNode } from './branchTrackingStatusNode';
 import { CommitNode } from './commitNode';
 import { LoadMoreNode, MessageNode } from './common';
@@ -40,7 +41,7 @@ type State = {
 };
 
 export class BranchNode
-	extends ViewRefNode<BranchesView | CommitsView | RemotesView | RepositoriesView, GitBranchReference, State>
+	extends ViewRefNode<BranchesView | CommitsView | RemotesView | RepositoriesView | WorkspacesView, GitBranchReference, State>
 	implements PageableViewNode
 {
 	static key = ':branch';
@@ -62,7 +63,7 @@ export class BranchNode
 
 	constructor(
 		uri: GitUri,
-		view: BranchesView | CommitsView | RemotesView | RepositoriesView,
+		view: BranchesView | CommitsView | RemotesView | RepositoriesView | WorkspacesView,
 		parent: ViewNode,
 		public readonly branch: GitBranch,
 		// Specifies that the node is shown as a root

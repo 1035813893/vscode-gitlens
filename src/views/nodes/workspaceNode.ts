@@ -1,5 +1,8 @@
-import { MarkdownString, ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
-import type { GitUri } from '../../git/gitUri';
+import { ThemeIcon, TreeItem, TreeItemCollapsibleState, Uri } from 'vscode';
+import { encodeUtf8Hex } from '@env/hex';
+import { Schemes } from '../../constants';
+import { GitUri } from '../../git/gitUri';
+import type { GitHubAuthorityMetadata } from '../../plus/remotehub';
 import type { GKCloudWorkspace, WorkspaceRepositoryDescriptor } from '../../plus/workspaces/models';
 import { gate } from '../../system/decorators/gate';
 import { debug } from '../../system/decorators/log';
@@ -38,12 +41,29 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 	async getChildren(): Promise<ViewNode[]> {
 		if (this._children == null) {
 			this._children = [];
+
 			for (const repository of await this.getRepositories()) {
+				let uri = Uri.parse(repository.url);
+				uri = uri.with({
+					scheme: Schemes.Virtual,
+					authority: encodeAuthority<GitHubAuthorityMetadata>('github'),
+					path: uri.path,
+				});
+
+				const repo = await this.view.container.git.getOrOpenRepository(uri, { closeOnOpen: true });
+				if (repo == null) {
+					this._children.push(
+						new MessageNode(
+							this.view,
+							this,
+							repository.name,
+						),
+					);
+					continue;
+				}
+
 				// TODO@ramint We will want this to be a proper WorkspacesRepositoryNode with info and interactions
-				this._children.push(new RepositoryNode(this.view, this, repository.name, undefined, undefined, {
-					dark: this.view.container.context.asAbsolutePath('images/dark/icon-repo.svg'),
-					light: this.view.container.context.asAbsolutePath('images/light/icon-repo.svg'),
-				}));
+				this._children.push(new RepositoryNode(new GitUri(repo.uri), this.view as any, this, repo));
 			}
 		}
 
@@ -74,4 +94,8 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 		this._children = undefined;
 		this._workspace = undefined;
 	}
+}
+
+function encodeAuthority<T>(scheme: string, metadata?: T): string {
+	return `${scheme}${metadata != null ? `+${encodeUtf8Hex(JSON.stringify(metadata))}` : ''}`;
 }

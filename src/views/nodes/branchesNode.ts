@@ -7,13 +7,14 @@ import { gate } from '../../system/decorators/gate';
 import { debug } from '../../system/decorators/log';
 import type { BranchesView } from '../branchesView';
 import { RepositoriesView } from '../repositoriesView';
+import type { WorkspacesView } from '../workspacesView';
 import { BranchNode } from './branchNode';
 import { BranchOrTagFolderNode } from './branchOrTagFolderNode';
 import { MessageNode } from './common';
 import { RepositoryNode } from './repositoryNode';
 import { ContextValues, ViewNode } from './viewNode';
 
-export class BranchesNode extends ViewNode<BranchesView | RepositoriesView> {
+export class BranchesNode extends ViewNode<BranchesView | RepositoriesView | WorkspacesView> {
 	static key = ':branches';
 	static getId(repoPath: string): string {
 		return `${RepositoryNode.getId(repoPath)}${this.key}`;
@@ -23,7 +24,7 @@ export class BranchesNode extends ViewNode<BranchesView | RepositoriesView> {
 
 	constructor(
 		uri: GitUri,
-		view: BranchesView | RepositoriesView,
+		view: BranchesView | RepositoriesView | WorkspacesView,
 		parent: ViewNode,
 		public readonly repo: Repository,
 	) {

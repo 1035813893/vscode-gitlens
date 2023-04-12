@@ -813,15 +813,7 @@ export interface WorktreesViewConfig {
 }
 
 // TODO@ramint
-export interface WorkspacesViewConfig {
-	avatars: boolean;
-	files: ViewsFilesConfig;
-	pullRequests: {
-		enabled: boolean;
-		showForBranches: boolean;
-		showForCommits: boolean;
-	};
-}
+export type WorkspacesViewConfig = RepositoriesViewConfig;
 
 export interface ViewsFilesConfig {
 	compact: boolean;

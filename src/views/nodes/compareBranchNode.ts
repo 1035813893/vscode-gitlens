@@ -14,6 +14,7 @@ import { pluralize } from '../../system/string';
 import type { BranchesView } from '../branchesView';
 import type { CommitsView } from '../commitsView';
 import type { RepositoriesView } from '../repositoriesView';
+import type { WorkspacesView } from '../workspacesView';
 import type { WorktreesView } from '../worktreesView';
 import { RepositoryNode } from './repositoryNode';
 import type { CommitsQueryResults } from './resultsCommitsNode';
@@ -22,7 +23,7 @@ import type { FilesQueryResults } from './resultsFilesNode';
 import { ResultsFilesNode } from './resultsFilesNode';
 import { ContextValues, ViewNode } from './viewNode';
 
-export class CompareBranchNode extends ViewNode<BranchesView | CommitsView | RepositoriesView | WorktreesView> {
+export class CompareBranchNode extends ViewNode<BranchesView | CommitsView | RepositoriesView | WorkspacesView | WorktreesView> {
 	static key = ':compare-branch';
 	static getId(repoPath: string, name: string, root: boolean): string {
 		return `${RepositoryNode.getId(repoPath)}${this.key}(${name})${root ? ':root' : ''}`;
@@ -33,7 +34,7 @@ export class CompareBranchNode extends ViewNode<BranchesView | CommitsView | Rep
 
 	constructor(
 		uri: GitUri,
-		view: BranchesView | CommitsView | RepositoriesView | WorktreesView,
+		view: BranchesView | CommitsView | RepositoriesView | WorkspacesView | WorktreesView,
 		parent: ViewNode,
 		public readonly branch: GitBranch,
 		private showComparison: ViewShowBranchComparison,

@@ -11,6 +11,7 @@ import { filter, flatMap, map } from '../../system/iterable';
 import { joinPaths, normalizePath } from '../../system/path';
 import { pluralize, sortCompare } from '../../system/string';
 import type { RepositoriesView } from '../repositoriesView';
+import type { WorkspacesView } from '../workspacesView';
 import { WorktreesView } from '../worktreesView';
 import type { FileNode } from './folderNode';
 import { FolderNode } from './folderNode';
@@ -18,7 +19,7 @@ import { RepositoryNode } from './repositoryNode';
 import { StatusFileNode } from './statusFileNode';
 import { ContextValues, ViewNode } from './viewNode';
 
-export class StatusFilesNode extends ViewNode<RepositoriesView | WorktreesView> {
+export class StatusFilesNode extends ViewNode<RepositoriesView | WorkspacesView | WorktreesView> {
 	static key = ':status-files';
 	static getId(repoPath: string): string {
 		return `${RepositoryNode.getId(repoPath)}${this.key}`;
@@ -27,7 +28,7 @@ export class StatusFilesNode extends ViewNode<RepositoriesView | WorktreesView> 
 	readonly repoPath: string;
 
 	constructor(
-		view: RepositoriesView | WorktreesView,
+		view: RepositoriesView | WorkspacesView | WorktreesView,
 		parent: ViewNode,
 		public readonly status:
 			| GitStatus

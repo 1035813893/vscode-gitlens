@@ -23,7 +23,6 @@ export class WorkspacesViewNode extends ViewNode<WorkspacesView> {
 			const children: WorkspaceNode[] = [];
 			// TODO@ramint Add local workspace nodes (and maybe current workspace)
 			const workspaces: GKCloudWorkspace[] = await this.view.container.workspaces.getWorkspaces();
-			console.log('WORKSPACES NODE GOT WORKSPACES: ', workspaces);
 			if (workspaces?.length) {
 				workspaces.forEach((cloudWorkspace: GKCloudWorkspace) => {
 					children.push(new WorkspaceNode(this.uri, this.view, this, cloudWorkspace));

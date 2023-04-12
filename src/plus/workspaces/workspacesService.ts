@@ -2,7 +2,6 @@ import type { Disposable } from 'vscode';
 import type { Container } from '../../container';
 import type { ServerConnection } from '../subscription/serverConnection';
 import type {
-	Workspace,
 	WorkspaceRepositoryDescriptor,
 	WorkspacesResponse,
 } from './models';
@@ -33,7 +32,6 @@ export class WorkspacesService implements Disposable {
         const cloudWorkspaces: GKCloudWorkspace[] = [];
         const workspaceResponse: WorkspacesResponse | undefined = await this._workspacesApi?.getWorkspacesWithRepos();
         const workspaces = workspaceResponse?.data?.projects?.nodes;
-        console.log('WORKSPACES: ', workspaces);
         if (workspaces?.length) {
             for (const workspace of workspaces) {
                 const repositories: WorkspaceRepositoryDescriptor[] = workspace.provider_data?.repositories?.nodes ?? [];

@@ -9,6 +9,7 @@ import { joinPaths, normalizePath } from '../../system/path';
 import { sortCompare } from '../../system/string';
 import type { RepositoriesView } from '../repositoriesView';
 import type { StashesView } from '../stashesView';
+import type { WorkspacesView } from '../workspacesView';
 import type { FileNode } from './folderNode';
 import { FolderNode } from './folderNode';
 import { RepositoryNode } from './repositoryNode';
@@ -16,13 +17,13 @@ import { StashFileNode } from './stashFileNode';
 import type { ViewNode } from './viewNode';
 import { ContextValues, ViewRefNode } from './viewNode';
 
-export class StashNode extends ViewRefNode<StashesView | RepositoriesView, GitStashReference> {
+export class StashNode extends ViewRefNode<StashesView | RepositoriesView | WorkspacesView, GitStashReference> {
 	static key = ':stash';
 	static getId(repoPath: string, ref: string): string {
 		return `${RepositoryNode.getId(repoPath)}${this.key}(${ref})`;
 	}
 
-	constructor(view: StashesView | RepositoriesView, parent: ViewNode, public readonly commit: GitStashCommit) {
+	constructor(view: StashesView | RepositoriesView | WorkspacesView, parent: ViewNode, public readonly commit: GitStashCommit) {
 		super(commit.getGitUri(), view, parent);
 	}
 

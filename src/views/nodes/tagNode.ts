@@ -13,6 +13,7 @@ import { map } from '../../system/iterable';
 import { pad } from '../../system/string';
 import type { RepositoriesView } from '../repositoriesView';
 import type { TagsView } from '../tagsView';
+import type { WorkspacesView } from '../workspacesView';
 import { CommitNode } from './commitNode';
 import { LoadMoreNode, MessageNode } from './common';
 import { insertDateMarkers } from './helpers';
@@ -20,13 +21,13 @@ import { RepositoryNode } from './repositoryNode';
 import type { PageableViewNode, ViewNode } from './viewNode';
 import { ContextValues, ViewRefNode } from './viewNode';
 
-export class TagNode extends ViewRefNode<TagsView | RepositoriesView, GitTagReference> implements PageableViewNode {
+export class TagNode extends ViewRefNode<TagsView | RepositoriesView | WorkspacesView, GitTagReference> implements PageableViewNode {
 	static key = ':tag';
 	static getId(repoPath: string, name: string): string {
 		return `${RepositoryNode.getId(repoPath)}${this.key}(${name})`;
 	}
 
-	constructor(uri: GitUri, view: TagsView | RepositoriesView, parent: ViewNode, public readonly tag: GitTag) {
+	constructor(uri: GitUri, view: TagsView | RepositoriesView | WorkspacesView, parent: ViewNode, public readonly tag: GitTag) {
 		super(uri, view, parent);
 	}
 

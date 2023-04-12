@@ -8,12 +8,13 @@ import { debug } from '../../system/decorators/log';
 import { timeout } from '../../system/decorators/timeout';
 import type { ContributorsView } from '../contributorsView';
 import type { RepositoriesView } from '../repositoriesView';
+import type { WorkspacesView } from '../workspacesView';
 import { MessageNode } from './common';
 import { ContributorNode } from './contributorNode';
 import { RepositoryNode } from './repositoryNode';
 import { ContextValues, ViewNode } from './viewNode';
 
-export class ContributorsNode extends ViewNode<ContributorsView | RepositoriesView> {
+export class ContributorsNode extends ViewNode<ContributorsView | RepositoriesView | WorkspacesView> {
 	static key = ':contributors';
 	static getId(repoPath: string): string {
 		return `${RepositoryNode.getId(repoPath)}${this.key}`;
@@ -25,7 +26,7 @@ export class ContributorsNode extends ViewNode<ContributorsView | RepositoriesVi
 
 	constructor(
 		uri: GitUri,
-		view: ContributorsView | RepositoriesView,
+		view: ContributorsView | RepositoriesView | WorkspacesView,
 		parent: ViewNode,
 		public readonly repo: Repository,
 	) {

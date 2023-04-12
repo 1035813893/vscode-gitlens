@@ -13,6 +13,7 @@ import { debug, log } from '../../system/decorators/log';
 import { disposableInterval } from '../../system/function';
 import { pad } from '../../system/string';
 import type { RepositoriesView } from '../repositoriesView';
+import type { WorkspacesView } from '../workspacesView';
 import { BranchesNode } from './branchesNode';
 import { BranchNode } from './branchNode';
 import { BranchTrackingStatusNode } from './branchTrackingStatusNode';
@@ -30,7 +31,7 @@ import type { ViewNode } from './viewNode';
 import { ContextValues, SubscribeableViewNode } from './viewNode';
 import { WorktreesNode } from './worktreesNode';
 
-export class RepositoryNode extends SubscribeableViewNode<RepositoriesView> {
+export class RepositoryNode extends SubscribeableViewNode<RepositoriesView | WorkspacesView> {
 	static key = ':repository';
 	static getId(repoPath: string): string {
 		return `gitlens${this.key}(${repoPath})`;
@@ -39,7 +40,7 @@ export class RepositoryNode extends SubscribeableViewNode<RepositoriesView> {
 	private _children: ViewNode[] | undefined;
 	private _status: Promise<GitStatus | undefined>;
 
-	constructor(uri: GitUri, view: RepositoriesView, parent: ViewNode, public readonly repo: Repository) {
+	constructor(uri: GitUri, view: RepositoriesView | WorkspacesView, parent: ViewNode, public readonly repo: Repository, private readonly options?: { locateLocal?: boolean }) {
 		super(uri, view, parent);
 
 		this._status = this.repo.getStatus();
@@ -191,6 +192,9 @@ export class RepositoryNode extends SubscribeableViewNode<RepositoriesView> {
 		let contextValue: string = ContextValues.Repository;
 		if (this.repo.starred) {
 			contextValue += '+starred';
+		}
+		if (this.options?.locateLocal) {
+			contextValue += '+locateLocal';
 		}
 
 		const status = await this._status;
