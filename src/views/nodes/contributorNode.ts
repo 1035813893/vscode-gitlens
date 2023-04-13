@@ -20,7 +20,10 @@ import { RepositoryNode } from './repositoryNode';
 import type { PageableViewNode } from './viewNode';
 import { ContextValues, ViewNode } from './viewNode';
 
-export class ContributorNode extends ViewNode<ContributorsView | RepositoriesView | WorkspacesView> implements PageableViewNode {
+export class ContributorNode
+	extends ViewNode<ContributorsView | RepositoriesView | WorkspacesView>
+	implements PageableViewNode
+{
 	static key = ':contributor';
 	static getId(
 		repoPath: string,

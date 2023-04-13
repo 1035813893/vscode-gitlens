@@ -40,7 +40,13 @@ export class RepositoryNode extends SubscribeableViewNode<RepositoriesView | Wor
 	private _children: ViewNode[] | undefined;
 	private _status: Promise<GitStatus | undefined>;
 
-	constructor(uri: GitUri, view: RepositoriesView | WorkspacesView, parent: ViewNode, public readonly repo: Repository, private readonly options?: { locateLocal?: boolean }) {
+	constructor(
+		uri: GitUri,
+		view: RepositoriesView | WorkspacesView,
+		parent: ViewNode,
+		public readonly repo: Repository,
+		private readonly options?: { locateLocal?: boolean },
+	) {
 		super(uri, view, parent);
 
 		this._status = this.repo.getStatus();

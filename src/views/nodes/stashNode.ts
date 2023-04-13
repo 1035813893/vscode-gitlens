@@ -23,7 +23,11 @@ export class StashNode extends ViewRefNode<StashesView | RepositoriesView | Work
 		return `${RepositoryNode.getId(repoPath)}${this.key}(${ref})`;
 	}
 
-	constructor(view: StashesView | RepositoriesView | WorkspacesView, parent: ViewNode, public readonly commit: GitStashCommit) {
+	constructor(
+		view: StashesView | RepositoriesView | WorkspacesView,
+		parent: ViewNode,
+		public readonly commit: GitStashCommit,
+	) {
 		super(commit.getGitUri(), view, parent);
 	}
 

@@ -20,7 +20,12 @@ export class ReflogNode extends ViewNode<RepositoriesView | WorkspacesView> impl
 
 	private _children: ViewNode[] | undefined;
 
-	constructor(uri: GitUri, view: RepositoriesView | WorkspacesView, parent: ViewNode, public readonly repo: Repository) {
+	constructor(
+		uri: GitUri,
+		view: RepositoriesView | WorkspacesView,
+		parent: ViewNode,
+		public readonly repo: Repository,
+	) {
 		super(uri, view, parent);
 	}
 

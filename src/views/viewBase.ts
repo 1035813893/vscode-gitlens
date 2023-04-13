@@ -66,7 +66,10 @@ export type View =
 	| WorkspacesView
 	| WorktreesView;
 export type ViewsWithCommits = Exclude<View, FileHistoryView | LineHistoryView | StashesView>;
-export type ViewsWithRepositoryFolders = Exclude<View, RepositoriesView | FileHistoryView | LineHistoryView | WorkspacesView>;
+export type ViewsWithRepositoryFolders = Exclude<
+	View,
+	RepositoriesView | FileHistoryView | LineHistoryView | WorkspacesView
+>;
 
 export interface TreeViewNodeCollapsibleStateChangeEvent<T> extends TreeViewExpansionEvent<T> {
 	state: TreeItemCollapsibleState;

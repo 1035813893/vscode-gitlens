@@ -52,13 +52,7 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 
 				const repo = await this.view.container.git.getOrOpenRepository(uri, { closeOnOpen: true });
 				if (repo == null) {
-					this._children.push(
-						new MessageNode(
-							this.view,
-							this,
-							repository.name,
-						),
-					);
+					this._children.push(new MessageNode(this.view, this, repository.name));
 					continue;
 				}
 

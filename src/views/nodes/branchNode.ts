@@ -41,7 +41,11 @@ type State = {
 };
 
 export class BranchNode
-	extends ViewRefNode<BranchesView | CommitsView | RemotesView | RepositoriesView | WorkspacesView, GitBranchReference, State>
+	extends ViewRefNode<
+		BranchesView | CommitsView | RemotesView | RepositoriesView | WorkspacesView,
+		GitBranchReference,
+		State
+	>
 	implements PageableViewNode
 {
 	static key = ':branch';

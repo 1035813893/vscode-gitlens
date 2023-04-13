@@ -1,10 +1,7 @@
 import type { Container } from '../../container';
 import { Logger } from '../../system/logger';
 import type { ServerConnection } from '../subscription/serverConnection';
-import type {
-	WorkspacesResponse,
-} from './models';
-
+import type { WorkspacesResponse } from './models';
 
 export class WorkspacesApi {
 	constructor(private readonly container: Container, private readonly server: ServerConnection) {}
@@ -22,8 +19,11 @@ export class WorkspacesApi {
 
 	// TODO@ramint: We have a pagedresponse model available in case it helps here. Takes care of cursor internally
 	// TODO@ramint: Move to a model where we split the calls. Get the workspaces, then gets repos per workspace.
-    // Make the data return a promise for the repos. Should be async so we're set up for dynamic processing.
-	async getWorkspacesWithRepos(options?: { cursor?: string; page?: number }): Promise<WorkspacesResponse | undefined> {
+	// Make the data return a promise for the repos. Should be async so we're set up for dynamic processing.
+	async getWorkspacesWithRepos(options?: {
+		cursor?: string;
+		page?: number;
+	}): Promise<WorkspacesResponse | undefined> {
 		const accessToken = await this.getAccessToken();
 		if (accessToken == null) {
 			return;
@@ -80,7 +80,7 @@ export class WorkspacesApi {
 			throw new Error(rsp.statusText);
 		}
 
-		const json: WorkspacesResponse | undefined = await rsp.json() as WorkspacesResponse | undefined;
+		const json: WorkspacesResponse | undefined = (await rsp.json()) as WorkspacesResponse | undefined;
 
 		return json;
 	}

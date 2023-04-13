@@ -23,7 +23,9 @@ import type { FilesQueryResults } from './resultsFilesNode';
 import { ResultsFilesNode } from './resultsFilesNode';
 import { ContextValues, ViewNode } from './viewNode';
 
-export class CompareBranchNode extends ViewNode<BranchesView | CommitsView | RepositoriesView | WorkspacesView | WorktreesView> {
+export class CompareBranchNode extends ViewNode<
+	BranchesView | CommitsView | RepositoriesView | WorkspacesView | WorktreesView
+> {
 	static key = ':compare-branch';
 	static getId(repoPath: string, name: string, root: boolean): string {
 		return `${RepositoryNode.getId(repoPath)}${this.key}(${name})${root ? ':root' : ''}`;

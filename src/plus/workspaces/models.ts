@@ -1,27 +1,72 @@
+// General types
+
 export class GKCloudWorkspace {
-    private readonly _id: string;
-    private readonly _name: string;
-    private readonly _repositories: WorkspaceRepositoryDescriptor[];
-    constructor(id: string, name: string, repositories: WorkspaceRepositoryDescriptor[]) {
-        this._id = id;
-        this._name = name;
-        this._repositories = repositories;
-    }
+	private readonly _type: WorkspaceType;
+	private readonly _id: string;
+	private readonly _name: string;
+	private readonly _repositories: WorkspaceRepositoryDescriptor[] | undefined;
+	constructor(type: WorkspaceType, id: string, name: string, repositories?: WorkspaceRepositoryDescriptor[]) {
+		this._type = type;
+		this._id = id;
+		this._name = name;
+		this._repositories = repositories;
+	}
 
-    get id(): string {
-        return this._id;
-    }
+	get id(): string {
+		return this._id;
+	}
 
-    get name(): string {
-        return this._name;
-    }
+	get name(): string {
+		return this._name;
+	}
 
-    get repositories(): WorkspaceRepositoryDescriptor[] {
-        return this._repositories;
-    }
+	get repositories(): WorkspaceRepositoryDescriptor[] | undefined {
+		return this._repositories;
+	}
 }
 
-export type WorkspaceProvider =
+export class GKLocalWorkspace {
+	private readonly _type: WorkspaceType;
+	private readonly _id: string;
+	private readonly _name: string;
+	private readonly _repositories: WorkspaceRepositoryDescriptor[] | undefined;
+	constructor(type: WorkspaceType, id: string, name: string, repositories?: WorkspaceRepositoryDescriptor[]) {
+		this._type = type;
+		this._id = id;
+		this._name = name;
+		this._repositories = repositories;
+	}
+
+	get id(): string {
+		return this._id;
+	}
+
+	get name(): string {
+		return this._name;
+	}
+
+	get repositories(): WorkspaceRepositoryDescriptor[] | undefined {
+		return this._repositories;
+	}
+}
+
+export enum WorkspaceType {
+	Local = 'local',
+	Cloud = 'cloud',
+}
+
+export interface WorkspaceRepositoryDescriptor {
+	id: string;
+	name: string;
+	description: string;
+	repository_id: string;
+	provider: string;
+	url: string;
+}
+
+// Workspaces API types
+
+export type CloudWorkspaceProvider =
 	| 'GITHUB'
 	| 'GITHUB_ENTERPRISE'
 	| 'GITLAB'
@@ -29,11 +74,11 @@ export type WorkspaceProvider =
 	| 'BITBUCKET'
 	| 'AZURE';
 
-export interface Workspace {
+export interface CloudWorkspaceData {
 	id: string;
 	name: string;
 	description: string;
-	type: WorkspaceType;
+	type: CloudWorkspaceType;
 	icon_url: string;
 	host_url: string;
 	status: string;
@@ -44,18 +89,18 @@ export interface Workspace {
 	updated_date: Date;
 	created_by: string;
 	updated_by: string;
-	members: WorkspaceMember[];
-	organization: WorkspaceOrganization;
-	issue_tracker: WorkspaceIssueTracker;
-	settings: WorkspaceSettings;
-	current_user: UserWorkspaceSettings;
+	members: CloudWorkspaceMember[];
+	organization: CloudWorkspaceOrganization;
+	issue_tracker: CloudWorkspaceIssueTracker;
+	settings: CloudWorkspaceSettings;
+	current_user: UserCloudWorkspaceSettings;
 	errors: string[];
-	provider_data: ProviderWorkspaceData;
+	provider_data: ProviderCloudWorkspaceData;
 }
 
-export type WorkspaceType = 'GK_PROJECT' | 'GK_ORG_VELOCITY' | 'GK_CLI';
+export type CloudWorkspaceType = 'GK_PROJECT' | 'GK_ORG_VELOCITY' | 'GK_CLI';
 
-export interface WorkspaceMember {
+export interface CloudWorkspaceMember {
 	id: string;
 	role: string;
 	name: string;
@@ -63,21 +108,21 @@ export interface WorkspaceMember {
 	avatar_url: string;
 }
 
-interface WorkspaceOrganization {
+interface CloudWorkspaceOrganization {
 	id: string;
 	team_ids: string[];
 }
 
-interface WorkspaceIssueTracker {
+interface CloudWorkspaceIssueTracker {
 	provider: string;
-	settings: WorkspaceIssueTrackerSettings;
+	settings: CloudWorkspaceIssueTrackerSettings;
 }
 
-interface WorkspaceIssueTrackerSettings {
+interface CloudWorkspaceIssueTrackerSettings {
 	resource_id: string;
 }
 
-interface WorkspaceSettings {
+interface CloudWorkspaceSettings {
 	gkOrgVelocity: GKOrgVelocitySettings;
 	goals: ProjectGoalsSettings;
 }
@@ -85,34 +130,34 @@ interface WorkspaceSettings {
 type GKOrgVelocitySettings = Record<string, unknown>;
 type ProjectGoalsSettings = Record<string, unknown>;
 
-interface UserWorkspaceSettings {
+interface UserCloudWorkspaceSettings {
 	project_id: string;
 	user_id: string;
-	tab_settings: UserWorkspaceTabSettings;
+	tab_settings: UserCloudWorkspaceTabSettings;
 }
 
-interface UserWorkspaceTabSettings {
-	issue_tracker: WorkspaceIssueTracker;
+interface UserCloudWorkspaceTabSettings {
+	issue_tracker: CloudWorkspaceIssueTracker;
 }
 
-export interface ProviderWorkspaceData {
+export interface ProviderCloudWorkspaceData {
 	id: string;
 	provider_organization_id: string;
-	repository: Repository;
-	repositories: Connection<Repository>;
-	pull_requests: PullRequest[];
-	issues: Issue[];
-	repository_members: RepositoryMember[];
-	milestones: Milestone[];
-	labels: Label[];
-	issue_types: IssueType[];
-	provider_identity: ProviderIdentity;
-	metrics: Metrics;
+	repository: CloudWorkspaceRepositoryData;
+	repositories: CloudWorkspaceConnection<CloudWorkspaceRepositoryData>;
+	pull_requests: CloudWorkspacePullRequestData[];
+	issues: CloudWorkspaceIssue[];
+	repository_members: CloudWorkspaceRepositoryMemberData[];
+	milestones: CloudWorkspaceMilestone[];
+	labels: CloudWorkspaceLabel[];
+	issue_types: CloudWorkspaceIssueType[];
+	provider_identity: ProviderCloudWorkspaceIdentity;
+	metrics: ProviderCloudWorkspaceMetrics;
 }
 
-type Metrics = Record<string, unknown>;
+type ProviderCloudWorkspaceMetrics = Record<string, unknown>;
 
-interface ProviderIdentity {
+interface ProviderCloudWorkspaceIdentity {
 	avatar_url: string;
 	id: string;
 	name: string;
@@ -139,7 +184,7 @@ interface BranchCommit {
 	};
 }
 
-export interface Repository {
+export interface CloudWorkspaceRepositoryData {
 	id: string;
 	name: string;
 	description: string;
@@ -150,37 +195,28 @@ export interface Repository {
 	url: string;
 	default_branch: string;
 	branches: Branch[];
-	pull_requests: PullRequest[];
-	issues: Issue[];
-	members: RepositoryMember[];
-	milestones: Milestone[];
-	labels: Label[];
-	issue_types: IssueType[];
+	pull_requests: CloudWorkspacePullRequestData[];
+	issues: CloudWorkspaceIssue[];
+	members: CloudWorkspaceRepositoryMemberData[];
+	milestones: CloudWorkspaceMilestone[];
+	labels: CloudWorkspaceLabel[];
+	issue_types: CloudWorkspaceIssueType[];
 	possibly_deleted: boolean;
 	has_webhook: boolean;
 }
 
-export interface WorkspaceRepositoryDescriptor {
-	id: string;
-	name: string;
-	description: string;
-	repository_id: string;
-	provider: string;
-	url: string;
-}
-
-interface RepositoryMember {
+interface CloudWorkspaceRepositoryMemberData {
 	avatar_url: string;
 	name: string;
 	node_id: string;
 	username: string;
 }
 
-type Milestone = Record<string, unknown>;
-type Label = Record<string, unknown>;
-type IssueType = Record<string, unknown>;
+type CloudWorkspaceMilestone = Record<string, unknown>;
+type CloudWorkspaceLabel = Record<string, unknown>;
+type CloudWorkspaceIssueType = Record<string, unknown>;
 
-export interface PullRequest {
+export interface CloudWorkspacePullRequestData {
 	id: string;
 	node_id: string;
 	number: string;
@@ -188,7 +224,7 @@ export interface PullRequest {
 	description: string;
 	url: string;
 	milestone_id: string;
-	labels: Label[];
+	labels: CloudWorkspaceLabel[];
 	author_id: string;
 	author_username: string;
 	created_date: Date;
@@ -198,7 +234,7 @@ export interface PullRequest {
 	first_commit_date: Date;
 	first_response_date: Date;
 	comment_count: number;
-	repository: Repository;
+	repository: CloudWorkspaceRepositoryData;
 	head_commit: {
 		id: string;
 		url: string;
@@ -213,19 +249,19 @@ export interface PullRequest {
 		start_date: Date;
 		end_date: Date;
 	}[];
-	reviews: PullRequestReviews[];
+	reviews: CloudWorkspacePullRequestReviews[];
 	head: {
 		name: string;
 	};
 }
 
-interface PullRequestReviews {
+interface CloudWorkspacePullRequestReviews {
 	user_id: string;
 	avatar_url: string;
 	state: string;
 }
 
-export interface Issue {
+export interface CloudWorkspaceIssue {
 	id: string;
 	node_id: string;
 	title: string;
@@ -238,10 +274,10 @@ export interface Issue {
 	created_date: Date;
 	updated_date: Date;
 	comment_count: number;
-	repository: Repository;
+	repository: CloudWorkspaceRepositoryData;
 }
 
-interface Connection<i> {
+interface CloudWorkspaceConnection<i> {
 	total_count: number;
 	page_info: {
 		start_cursor: string;
@@ -251,21 +287,21 @@ interface Connection<i> {
 	nodes: i[];
 }
 
-interface FetchedConnection<i> extends Connection<i> {
+interface CloudWorkspaceFetchedConnection<i> extends CloudWorkspaceConnection<i> {
 	is_fetching: boolean;
 }
 
 export interface WorkspacesResponse {
 	data: {
-		projects: Connection<Workspace>;
+		projects: CloudWorkspaceConnection<CloudWorkspaceData>;
 	};
 }
 
-export interface PullRequestsResponse {
+export interface WorkspacePullRequestsResponse {
 	data: {
 		project: {
 			provider_data: {
-				pull_requests: FetchedConnection<PullRequest>;
+				pull_requests: CloudWorkspaceFetchedConnection<CloudWorkspacePullRequestData>;
 			};
 		};
 	};
@@ -276,7 +312,7 @@ export interface WorkspacesWithPullRequestsResponse {
 		projects: {
 			nodes: {
 				provider_data: {
-					pull_requests: FetchedConnection<PullRequest>;
+					pull_requests: CloudWorkspaceFetchedConnection<CloudWorkspacePullRequestData>;
 				};
 			}[];
 		};
@@ -288,11 +324,11 @@ export interface WorkspacesWithPullRequestsResponse {
 	}[];
 }
 
-export interface IssuesResponse {
+export interface WorkspaceIssuesResponse {
 	data: {
 		project: {
 			provider_data: {
-				issues: FetchedConnection<Issue>;
+				issues: CloudWorkspaceFetchedConnection<CloudWorkspaceIssue>;
 			};
 		};
 	};

@@ -19,7 +19,12 @@ export class RemotesNode extends ViewNode<RemotesView | RepositoriesView | Works
 
 	private _children: ViewNode[] | undefined;
 
-	constructor(uri: GitUri, view: RemotesView | RepositoriesView | WorkspacesView, parent: ViewNode, public readonly repo: Repository) {
+	constructor(
+		uri: GitUri,
+		view: RemotesView | RepositoriesView | WorkspacesView,
+		parent: ViewNode,
+		public readonly repo: Repository,
+	) {
 		super(uri, view, parent);
 	}
 
