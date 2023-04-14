@@ -1,4 +1,4 @@
-import { Disposable, MarkdownString, TreeItem, TreeItemCollapsibleState } from 'vscode';
+import { Disposable, MarkdownString, TreeItem, TreeItemCollapsibleState, Uri } from 'vscode';
 import { GlyphChars } from '../../constants';
 import { Features } from '../../features';
 import type { GitUri } from '../../git/gitUri';
@@ -7,6 +7,7 @@ import { GitRemote } from '../../git/models/remote';
 import type { RepositoryChangeEvent, RepositoryFileSystemChangeEvent } from '../../git/models/repository';
 import { Repository, RepositoryChange, RepositoryChangeComparisonMode } from '../../git/models/repository';
 import type { GitStatus } from '../../git/models/status';
+import type { GKCloudWorkspace, GKLocalWorkspace } from '../../plus/workspaces/models';
 import { findLastIndex } from '../../system/array';
 import { gate } from '../../system/decorators/gate';
 import { debug, log } from '../../system/decorators/log';
@@ -45,7 +46,7 @@ export class RepositoryNode extends SubscribeableViewNode<RepositoriesView | Wor
 		view: RepositoriesView | WorkspacesView,
 		parent: ViewNode,
 		public readonly repo: Repository,
-		private readonly options?: { locateLocal?: boolean },
+		private readonly options?: { workspace?: GKCloudWorkspace | GKLocalWorkspace },
 	) {
 		super(uri, view, parent);
 
@@ -199,8 +200,8 @@ export class RepositoryNode extends SubscribeableViewNode<RepositoriesView | Wor
 		if (this.repo.starred) {
 			contextValue += '+starred';
 		}
-		if (this.options?.locateLocal) {
-			contextValue += '+locateLocal';
+		if (this.options?.workspace) {
+			contextValue += '+workspace';
 		}
 
 		const status = await this._status;
@@ -272,6 +273,10 @@ export class RepositoryNode extends SubscribeableViewNode<RepositoriesView | Wor
 			dark: this.view.container.context.asAbsolutePath(`images/dark/icon-repo${iconSuffix}.svg`),
 			light: this.view.container.context.asAbsolutePath(`images/light/icon-repo${iconSuffix}.svg`),
 		};
+
+		if (this.options?.workspace && !this.repo.closed) {
+			item.resourceUri = Uri.parse(`gitlens-view://workspaces/repository/open`);
+		}
 
 		const markdown = new MarkdownString(tooltip, true);
 		markdown.supportHtml = true;

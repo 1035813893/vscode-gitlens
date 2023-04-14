@@ -2,6 +2,7 @@ import { ThemeIcon, TreeItem, TreeItemCollapsibleState, Uri } from 'vscode';
 import { encodeUtf8Hex } from '@env/hex';
 import { Schemes } from '../../constants';
 import { GitUri } from '../../git/gitUri';
+import { RemoteResourceType } from '../../git/models/remoteResource';
 import type { Repository } from '../../git/models/repository';
 import type { GitHubAuthorityMetadata } from '../../plus/remotehub';
 import type {
@@ -14,9 +15,9 @@ import { WorkspaceType } from '../../plus/workspaces/models';
 import { gate } from '../../system/decorators/gate';
 import { debug } from '../../system/decorators/log';
 import type { WorkspacesView } from '../workspacesView';
-import { MessageNode } from './common';
 import { RepositoryNode } from './repositoryNode';
 import { ViewNode } from './viewNode';
+import { WorkspaceMissingRepositoryNode } from './workspaceMissingRepositoryNode';
 
 export class WorkspaceNode extends ViewNode<WorkspacesView> {
 	static key = ':workspace';
@@ -59,6 +60,8 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 			this._children = [];
 
 			for (const repository of await this.getRepositories()) {
+				console.log('A CURRENT REPOSITORY ASDF MYREPO: ', repository);
+				const currentRepositories = this.view.container.git.repositories;
 				let repo: Repository | undefined = undefined;
 				let repoId: string | undefined = undefined;
 				let repoLocalPath: string | undefined = undefined;
@@ -68,17 +71,25 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 				let repoOwner: string | undefined = undefined;
 				if (this._type === WorkspaceType.Local) {
 					repoLocalPath = (repository as LocalWorkspaceRepositoryDescriptor).localPath;
+					// repo name in this case is the last part of the path after splitting from the path separator
+					repoName = repoLocalPath?.split(/[\\/]/).pop() || 'unknown';
+					for (const currentRepository of currentRepositories) {
+						if (currentRepository.path.replace('\\', '/') === repoLocalPath.replace('\\', '/')) {
+							repo = currentRepository;
+						}
+					}
 				} else if (this._type === WorkspaceType.Cloud) {
 					repoId = (repository as CloudWorkspaceRepositoryDescriptor).id;
 					repoLocalPath = await this.view.container.workspaces.getCloudWorkspaceRepoPath(
 						this._workspace.id,
 						repoId,
 					);
+					repoRemoteUrl = (repository as CloudWorkspaceRepositoryDescriptor).url;
+					repoName = (repository as CloudWorkspaceRepositoryDescriptor).name;
+					repoProvider = (repository as CloudWorkspaceRepositoryDescriptor).provider;
+					repoOwner = (repository as CloudWorkspaceRepositoryDescriptor).provider_organization_name;
+
 					if (repoLocalPath == null) {
-						repoRemoteUrl = (repository as CloudWorkspaceRepositoryDescriptor).url;
-						repoName = (repository as CloudWorkspaceRepositoryDescriptor).name;
-						repoProvider = (repository as CloudWorkspaceRepositoryDescriptor).provider;
-						repoOwner = (repository as CloudWorkspaceRepositoryDescriptor).provider_organization_name;
 						const repoLocalPaths = await this.view.container.localPath.getLocalRepoPaths({
 							remoteUrl: repoRemoteUrl,
 							repoInfo: {
@@ -93,30 +104,57 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 							repoLocalPath = repoLocalPaths[0];
 						}
 					}
+
+					// TODO@ramint: This is super hacky. The matching needs to be done way more reliably
+					// and elegantly.
+					for (const currentRepository of currentRepositories) {
+						if (
+							repoLocalPath != null &&
+							currentRepository.path.replace('\\', '/') === repoLocalPath.replace('\\', '/')
+						) {
+							repo = currentRepository;
+						} else if (
+							repoRemoteUrl != null &&
+							(
+								await currentRepository.getRemotes({
+									filter: r => r.provider?.url({ type: RemoteResourceType.Repo }) === repoRemoteUrl,
+								})
+							)?.length > 0
+						) {
+							repo = currentRepository;
+						}
+					}
 				}
 
-				let uri: Uri | undefined = undefined;
-				if (repoLocalPath) {
-					console.log('WORKSPACES GOT A LOCAL PATH FOR A REPO: ', repoLocalPath);
-					uri = Uri.file(repoLocalPath);
-				} else if (repoRemoteUrl) {
-					uri = Uri.parse(repoRemoteUrl);
-					uri = uri.with({
-						scheme: Schemes.Virtual,
-						authority: encodeAuthority<GitHubAuthorityMetadata>('github'),
-						path: uri.path,
-					});
-				}
-				if (uri) {
-					repo = await this.view.container.git.getOrOpenRepository(uri, { closeOnOpen: true });
+				if (!repo) {
+					let uri: Uri | undefined = undefined;
+					if (repoLocalPath) {
+						uri = Uri.file(repoLocalPath);
+					} else if (repoRemoteUrl) {
+						uri = Uri.parse(repoRemoteUrl);
+						uri = uri.with({
+							scheme: Schemes.Virtual,
+							authority: encodeAuthority<GitHubAuthorityMetadata>('github'),
+							path: uri.path,
+						});
+					}
+					if (uri) {
+						repo = await this.view.container.git.getOrOpenRepository(uri, { closeOnOpen: true });
+					}
 				}
 
-				if (repo == null) {
-					this._children.push(new MessageNode(this.view, this, repository.name));
+				if (!repo) {
+					this._children.push(
+						new WorkspaceMissingRepositoryNode(this.view, this, this._workspace.id, repoName || 'unknown'),
+					);
 					continue;
 				}
 
-				this._children.push(new RepositoryNode(new GitUri(repo.uri), this.view as any, this, repo));
+				this._children.push(
+					new RepositoryNode(GitUri.fromRepoPath(repo.path), this.view, this, repo, {
+						workspace: this._workspace,
+					}),
+				);
 			}
 		}
 

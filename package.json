@@ -4160,6 +4160,15 @@
 				}
 			},
 			{
+				"id": "gitlens.decorations.workspaceRepoOpenForegroundColor",
+				"description": "Specifies the decoration foreground color of workspace repos which are open in the current workspace",
+				"defaults": {
+					"dark": "#35b15e",
+					"light": "#35b15e",
+					"highContrast": "#4dff88"
+				}
+			},
+			{
 				"id": "gitlens.decorations.worktreeView.hasUncommittedChangesForegroundColor",
 				"description": "Specifies the decoration foreground color for worktrees that have uncommitted changes",
 				"defaults": {
