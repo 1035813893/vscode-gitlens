@@ -1,6 +1,3 @@
-// General types
-export const localGKSharedDataFolder = '.gk';
-export const localGKSharedDataLegacyFolder = '.gitkraken';
 export enum WorkspaceType {
 	Local = 'local',
 	Cloud = 'cloud',
@@ -41,6 +38,7 @@ export interface CloudWorkspaceRepositoryDescriptor {
 	description: string;
 	repository_id: string;
 	provider: string;
+	provider_organization_name: string;
 	url: string;
 }
 

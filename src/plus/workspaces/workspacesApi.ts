@@ -63,6 +63,7 @@ export class WorkspacesApi {
                                             name
                                             repository_id
                                             provider
+											provider_organization_name
                                             url
                                         }
                                     }

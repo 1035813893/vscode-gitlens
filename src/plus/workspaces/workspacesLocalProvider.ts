@@ -4,64 +4,13 @@ import os from 'os';
 import path from 'path';
 import { Uri, workspace } from 'vscode';
 import { getPlatform } from '@env/platform';
+import { localGKSharedDataFolder, localGKSharedDataLegacyFolder } from '../../constants';
+import { acquireSharedFolderWriteLock, releaseSharedFolderWriteLock } from '../../git/localPathProvider';
 import type { CloudWorkspacesPathMap, LocalWorkspaceFileData } from './models';
-import {
-	cloudWorkspaceDataFilePath,
-	localGKSharedDataFolder,
-	localGKSharedDataLegacyFolder,
-	localWorkspaceDataFilePath,
-	localWorkspaceDataLegacyFilePath,
-} from './models';
+import { cloudWorkspaceDataFilePath, localWorkspaceDataFilePath, localWorkspaceDataLegacyFilePath } from './models';
 
 export class WorkspacesLocalProvider {
 	private _cloudWorkspaceRepoPathMap: CloudWorkspacesPathMap | undefined = undefined;
-
-	private async acquireWriteLock(): Promise<boolean> {
-		const lockFilePath = path.join(os.homedir(), localGKSharedDataFolder, 'lockfile');
-		let existingLockFileData;
-		while (true) {
-			try {
-				existingLockFileData = await workspace.fs.readFile(Uri.file(lockFilePath));
-			} catch (error) {
-				// File does not exist, so we can safely create it
-				break;
-			}
-
-			const existingLockFileTimestamp = parseInt(existingLockFileData.toString());
-			if (isNaN(existingLockFileTimestamp)) {
-				// File exists, but the timestamp is invalid, so we can safely remove it
-				break;
-			}
-
-			const currentTime = new Date().getTime();
-			if (currentTime - existingLockFileTimestamp > 30000) {
-				// File exists, but the timestamp is older than 30 seconds, so we can safely remove it
-				break;
-			}
-
-			// File exists, and the timestamp is less than 30 seconds old, so we need to wait for it to be removed
-			await new Promise(resolve => setTimeout(resolve, 100));
-		}
-
-		// Create the lockfile with the current timestamp
-		const lockFileData = new Uint8Array(Buffer.from(new Date().getTime().toString()));
-
-		try {
-			// write the lockfile to the shared data folder
-			await workspace.fs.writeFile(Uri.file(lockFilePath), lockFileData);
-		} catch (error) {
-			return false;
-		}
-
-		return true;
-	}
-
-	private async releaseWriteLock(): Promise<void> {
-		const lockFilePath = path.join(os.homedir(), localGKSharedDataFolder, 'lockfile');
-		try {
-			await workspace.fs.delete(Uri.file(lockFilePath));
-		} catch (error) {}
-	}
 
 	private async ensureCloudWorkspaceRepoPathMap() {
 		if (this._cloudWorkspaceRepoPathMap == null) {
@@ -69,9 +18,14 @@ export class WorkspacesLocalProvider {
 		}
 	}
 
-	async getCloudWorkspaceRepoPathMap(): Promise<CloudWorkspacesPathMap> {
+	private async getCloudWorkspaceRepoPathMap(): Promise<CloudWorkspacesPathMap> {
 		await this.ensureCloudWorkspaceRepoPathMap();
 		return this._cloudWorkspaceRepoPathMap ?? {};
+	}
+
+	async getCloudWorkspaceRepoPath(cloudWorkspaceId: string, repoId: string): Promise<string | undefined> {
+		const cloudWorkspaceRepoPathMap = await this.getCloudWorkspaceRepoPathMap();
+		return cloudWorkspaceRepoPathMap[cloudWorkspaceId]?.repoPaths[repoId];
 	}
 
 	async loadCloudWorkspaceRepoPathMap() {
@@ -83,7 +37,7 @@ export class WorkspacesLocalProvider {
 	}
 
 	async writeCloudWorkspaceDiskPathToMap(cloudWorkspaceId: string, repoId: string, repoLocalPath: string) {
-		await this.acquireWriteLock();
+		await acquireSharedFolderWriteLock();
 		await this.loadCloudWorkspaceRepoPathMap();
 		if (this._cloudWorkspaceRepoPathMap == null) {
 			this._cloudWorkspaceRepoPathMap = {};
@@ -98,7 +52,7 @@ export class WorkspacesLocalProvider {
 		const localFilePath = path.join(os.homedir(), localGKSharedDataFolder, cloudWorkspaceDataFilePath);
 		const outputData = new Uint8Array(Buffer.from(JSON.stringify({ workspaces: this._cloudWorkspaceRepoPathMap })));
 		await workspace.fs.writeFile(Uri.file(localFilePath), outputData);
-		await this.releaseWriteLock();
+		await releaseSharedFolderWriteLock();
 	}
 
 	// TODO@ramint: May want a file watcher on this file down the line

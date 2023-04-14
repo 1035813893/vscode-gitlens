@@ -15,6 +15,7 @@ import { Commands, extensionPrefix } from './constants';
 import { EventBus } from './eventBus';
 import { GitFileSystemProvider } from './git/fsProvider';
 import { GitProviderService } from './git/gitProviderService';
+import { LocalPathProvider } from './git/localPathProvider';
 import { GitHubAuthenticationProvider } from './git/remotes/github';
 import { GitLabAuthenticationProvider } from './git/remotes/gitlab';
 import { RichRemoteProviderService } from './git/remotes/remoteProviderService';
@@ -199,6 +200,7 @@ export class Container {
 
 		this._disposables.push((this._git = new GitProviderService(this)));
 		this._disposables.push(new GitFileSystemProvider(this));
+		this._disposables.push((this._localPath = new LocalPathProvider(this)));
 
 		this._disposables.push((this._uri = new UriService(this)));
 
@@ -530,6 +532,11 @@ export class Container {
 	private readonly _lineTracker: GitLineTracker;
 	get lineTracker() {
 		return this._lineTracker;
+	}
+
+	private readonly _localPath: LocalPathProvider;
+	get localPath() {
+		return this._localPath;
 	}
 
 	private readonly _prerelease;

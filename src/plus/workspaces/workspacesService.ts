@@ -76,8 +76,8 @@ export class WorkspacesService implements Disposable {
 		return workspaces;
 	}
 
-	async getCloudWorkspacesRepoPathMap(): Promise<CloudWorkspacesPathMap> {
-		return (await this._workspacesLocalProvider?.getCloudWorkspaceRepoPathMap()) ?? {};
+	async getCloudWorkspaceRepoPath(cloudWorkspaceId: string, repoId: string): Promise<string | undefined> {
+		return this._workspacesLocalProvider?.getCloudWorkspaceRepoPath(cloudWorkspaceId, repoId);
 	}
 
 	async updateCloudWorkspaceRepoLocalPath(workspaceId: string, repoId: string, localPath: string): Promise<void> {

@@ -57,25 +57,47 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 	async getChildren(): Promise<ViewNode[]> {
 		if (this._children == null) {
 			this._children = [];
-			const cloudRepoMap = await this.view.container.workspaces.getCloudWorkspacesRepoPathMap();
 
 			for (const repository of await this.getRepositories()) {
 				let repo: Repository | undefined = undefined;
 				let repoId: string | undefined = undefined;
 				let repoLocalPath: string | undefined = undefined;
 				let repoRemoteUrl: string | undefined = undefined;
+				let repoName: string | undefined = undefined;
+				let repoProvider: string | undefined = undefined;
+				let repoOwner: string | undefined = undefined;
 				if (this._type === WorkspaceType.Local) {
 					repoLocalPath = (repository as LocalWorkspaceRepositoryDescriptor).localPath;
 				} else if (this._type === WorkspaceType.Cloud) {
 					repoId = (repository as CloudWorkspaceRepositoryDescriptor).id;
-					repoLocalPath = cloudRepoMap[this._workspace.id]?.repoPaths[repoId];
+					repoLocalPath = await this.view.container.workspaces.getCloudWorkspaceRepoPath(
+						this._workspace.id,
+						repoId,
+					);
 					if (repoLocalPath == null) {
 						repoRemoteUrl = (repository as CloudWorkspaceRepositoryDescriptor).url;
+						repoName = (repository as CloudWorkspaceRepositoryDescriptor).name;
+						repoProvider = (repository as CloudWorkspaceRepositoryDescriptor).provider;
+						repoOwner = (repository as CloudWorkspaceRepositoryDescriptor).provider_organization_name;
+						const repoLocalPaths = await this.view.container.localPath.getLocalRepoPaths({
+							remoteUrl: repoRemoteUrl,
+							repoInfo: {
+								repoName: repoName,
+								provider: repoProvider,
+								owner: repoOwner,
+							},
+						});
+
+						// TODO@ramint: The user should be able to choose which path to use if multiple available
+						if (repoLocalPaths.length > 0) {
+							repoLocalPath = repoLocalPaths[0];
+						}
 					}
 				}
 
 				let uri: Uri | undefined = undefined;
 				if (repoLocalPath) {
+					console.log('WORKSPACES GOT A LOCAL PATH FOR A REPO: ', repoLocalPath);
 					uri = Uri.file(repoLocalPath);
 				} else if (repoRemoteUrl) {
 					uri = Uri.parse(repoRemoteUrl);
