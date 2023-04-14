@@ -1,61 +1,41 @@
 // General types
-
-export class GKCloudWorkspace {
-	private readonly _type: WorkspaceType;
-	private readonly _id: string;
-	private readonly _name: string;
-	private readonly _repositories: WorkspaceRepositoryDescriptor[] | undefined;
-	constructor(type: WorkspaceType, id: string, name: string, repositories?: WorkspaceRepositoryDescriptor[]) {
-		this._type = type;
-		this._id = id;
-		this._name = name;
-		this._repositories = repositories;
-	}
-
-	get id(): string {
-		return this._id;
-	}
-
-	get name(): string {
-		return this._name;
-	}
-
-	get repositories(): WorkspaceRepositoryDescriptor[] | undefined {
-		return this._repositories;
-	}
-}
-
-export class GKLocalWorkspace {
-	private readonly _type: WorkspaceType;
-	private readonly _id: string;
-	private readonly _name: string;
-	private readonly _repositories: WorkspaceRepositoryDescriptor[] | undefined;
-	constructor(type: WorkspaceType, id: string, name: string, repositories?: WorkspaceRepositoryDescriptor[]) {
-		this._type = type;
-		this._id = id;
-		this._name = name;
-		this._repositories = repositories;
-	}
-
-	get id(): string {
-		return this._id;
-	}
-
-	get name(): string {
-		return this._name;
-	}
-
-	get repositories(): WorkspaceRepositoryDescriptor[] | undefined {
-		return this._repositories;
-	}
-}
-
+export const localGKSharedDataFolder = '.gk';
+export const localGKSharedDataLegacyFolder = '.gitkraken';
 export enum WorkspaceType {
 	Local = 'local',
 	Cloud = 'cloud',
 }
 
-export interface WorkspaceRepositoryDescriptor {
+// Cloud Workspace types
+export class GKCloudWorkspace {
+	private readonly _type: WorkspaceType = WorkspaceType.Cloud;
+	private readonly _id: string;
+	private readonly _name: string;
+	private readonly _repositories: CloudWorkspaceRepositoryDescriptor[] | undefined;
+	constructor(id: string, name: string, repositories?: CloudWorkspaceRepositoryDescriptor[]) {
+		this._id = id;
+		this._name = name;
+		this._repositories = repositories;
+	}
+
+	get type(): WorkspaceType {
+		return this._type;
+	}
+
+	get id(): string {
+		return this._id;
+	}
+
+	get name(): string {
+		return this._name;
+	}
+
+	get repositories(): CloudWorkspaceRepositoryDescriptor[] | undefined {
+		return this._repositories;
+	}
+}
+
+export interface CloudWorkspaceRepositoryDescriptor {
 	id: string;
 	name: string;
 	description: string;
@@ -63,8 +43,6 @@ export interface WorkspaceRepositoryDescriptor {
 	provider: string;
 	url: string;
 }
-
-// Workspaces API types
 
 export type CloudWorkspaceProvider =
 	| 'GITHUB'
@@ -333,3 +311,82 @@ export interface WorkspaceIssuesResponse {
 		};
 	};
 }
+
+// Local Workspace Types
+export class GKLocalWorkspace {
+	private readonly _type: WorkspaceType = WorkspaceType.Local;
+	private readonly _id: string;
+	private readonly _name: string;
+	private readonly _repositories: LocalWorkspaceRepositoryDescriptor[] | undefined;
+	constructor(id: string, name: string, repositories?: LocalWorkspaceRepositoryDescriptor[]) {
+		this._id = id;
+		this._name = name;
+		this._repositories = repositories;
+	}
+
+	get type(): WorkspaceType {
+		return this._type;
+	}
+
+	get id(): string {
+		return this._id;
+	}
+
+	get name(): string {
+		return this._name;
+	}
+
+	get repositories(): LocalWorkspaceRepositoryDescriptor[] | undefined {
+		return this._repositories;
+	}
+}
+
+// Local workspace file constants
+
+export const localWorkspaceDataFilePath = 'localWorkspaces.json';
+export const localWorkspaceDataLegacyFilePath = 'workspaces/workspaces.json';
+
+export interface LocalWorkspaceFileData {
+	workspaces: LocalWorkspaceData;
+}
+
+export type LocalWorkspaceData = {
+	[localWorkspaceId: string]: LocalWorkspaceDescriptor;
+};
+
+export interface LocalWorkspaceDescriptor {
+	localId: string;
+	profileId: string;
+	name: string;
+	description: string;
+	repositories: LocalWorkspaceRepositoryPath[];
+	version: number;
+}
+
+export interface LocalWorkspaceRepositoryPath {
+	localPath: string;
+}
+
+export interface LocalWorkspaceRepositoryDescriptor extends LocalWorkspaceRepositoryPath {
+	name: string;
+}
+
+// Cloud workspace file constants
+
+export const cloudWorkspaceDataFilePath = 'cloudWorkspaces.json';
+
+export interface CloudWorkspaceFileData {
+	workspaces: CloudWorkspacesPathMap;
+}
+
+export type CloudWorkspacesPathMap = {
+	[cloudWorkspaceId: string]: CloudWorkspaceRepoPaths;
+};
+
+export interface CloudWorkspaceRepoPaths {
+	repoPaths: CloudWorkspaceRepoPathMap;
+}
+
+export type CloudWorkspaceRepoPathMap = {
+	[repoId: string]: string;
+};
