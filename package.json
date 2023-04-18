@@ -6779,6 +6779,12 @@
 				"icon": "$(refresh)"
 			},
 			{
+				"command": "gitlens.views.workspaces.locateRepo",
+				"title": "Locate Repository",
+				"category": "GitLens",
+				"icon": "$(folder-opened)"
+			},
+			{
 				"command": "gitlens.views.workspaces.refresh",
 				"title": "Refresh",
 				"category": "GitLens",
@@ -9058,6 +9064,10 @@
 				},
 				{
 					"command": "gitlens.views.timeline.refresh",
+					"when": "false"
+				},
+				{
+					"command": "gitlens.views.workspaces.locateRepo",
 					"when": "false"
 				},
 				{
@@ -11703,6 +11713,11 @@
 				{
 					"command": "gitlens.stashApply",
 					"when": "!gitlens:readonly && !gitlens:untrusted && !gitlens:hasVirtualFolders && viewItem == gitlens:stash",
+					"group": "inline@1"
+				},
+				{
+					"command": "gitlens.views.workspaces.locateRepo",
+					"when": "viewItem =~ /gitlens:repository\\b(?=.*?\\b\\+workspace\\b)/ || viewItem == gitlens:workspaceMissingRepository",
 					"group": "inline@1"
 				},
 				{

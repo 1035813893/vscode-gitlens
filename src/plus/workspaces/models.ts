@@ -30,6 +30,10 @@ export class GKCloudWorkspace {
 	get repositories(): CloudWorkspaceRepositoryDescriptor[] | undefined {
 		return this._repositories;
 	}
+
+	getRepository(name: string): CloudWorkspaceRepositoryDescriptor | undefined {
+		return this._repositories?.find(r => r.name === name);
+	}
 }
 
 export interface CloudWorkspaceRepositoryDescriptor {
@@ -336,6 +340,10 @@ export class GKLocalWorkspace {
 
 	get repositories(): LocalWorkspaceRepositoryDescriptor[] | undefined {
 		return this._repositories;
+	}
+
+	getRepository(name: string): LocalWorkspaceRepositoryDescriptor | undefined {
+		return this._repositories?.find(r => r.name === name);
 	}
 }
 

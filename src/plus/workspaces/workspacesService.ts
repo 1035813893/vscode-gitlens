@@ -1,12 +1,7 @@
 import type { Disposable } from 'vscode';
 import type { Container } from '../../container';
 import type { ServerConnection } from '../subscription/serverConnection';
-import type {
-	CloudWorkspaceRepositoryDescriptor,
-	CloudWorkspacesPathMap,
-	LocalWorkspaceData,
-	WorkspacesResponse,
-} from './models';
+import type { CloudWorkspaceRepositoryDescriptor, LocalWorkspaceData, WorkspacesResponse } from './models';
 import { GKCloudWorkspace, GKLocalWorkspace } from './models';
 import { WorkspacesApi } from './workspacesApi';
 import { WorkspacesLocalProvider } from './workspacesLocalProvider';
@@ -50,7 +45,7 @@ export class WorkspacesService implements Disposable {
 					workspace.name,
 					workspace.repositories.map(repositoryPath => ({
 						localPath: repositoryPath.localPath,
-						name: repositoryPath.localPath.split('/').pop() ?? 'unknown',
+						name: repositoryPath.localPath.split(/[\\/]/).pop() ?? 'unknown',
 					})),
 				),
 			);
@@ -74,6 +69,22 @@ export class WorkspacesService implements Disposable {
 		workspaces.push(...this._localWorkspaces);
 
 		return workspaces;
+	}
+
+	async getCloudWorkspace(workspaceId: string): Promise<GKCloudWorkspace | undefined> {
+		if (this._cloudWorkspaces == null) {
+			this._cloudWorkspaces = await this.loadCloudWorkspaces();
+		}
+
+		return this._cloudWorkspaces?.find(workspace => workspace.id === workspaceId);
+	}
+
+	async getLocalWorkspace(workspaceId: string): Promise<GKLocalWorkspace | undefined> {
+		if (this._localWorkspaces == null) {
+			this._localWorkspaces = await this.loadLocalWorkspaces();
+		}
+
+		return this._localWorkspaces?.find(workspace => workspace.id === workspaceId);
 	}
 
 	async getCloudWorkspaceRepoPath(cloudWorkspaceId: string, repoId: string): Promise<string | undefined> {

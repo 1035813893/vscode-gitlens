@@ -12,8 +12,6 @@ import type {
 	LocalWorkspaceRepositoryDescriptor,
 } from '../../plus/workspaces/models';
 import { WorkspaceType } from '../../plus/workspaces/models';
-import { gate } from '../../system/decorators/gate';
-import { debug } from '../../system/decorators/log';
 import type { WorkspacesView } from '../workspacesView';
 import { RepositoryNode } from './repositoryNode';
 import { ViewNode } from './viewNode';
@@ -47,6 +45,10 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 		return this._workspace?.name ?? '';
 	}
 
+	get workspaceId(): string {
+		return this._workspace.id ?? '';
+	}
+
 	private async getRepositories(): Promise<
 		CloudWorkspaceRepositoryDescriptor[] | LocalWorkspaceRepositoryDescriptor[]
 	> {
@@ -60,7 +62,6 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 			this._children = [];
 
 			for (const repository of await this.getRepositories()) {
-				console.log('A CURRENT REPOSITORY ASDF MYREPO: ', repository);
 				const currentRepositories = this.view.container.git.repositories;
 				let repo: Repository | undefined = undefined;
 				let repoId: string | undefined = undefined;
@@ -72,7 +73,7 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 				if (this._type === WorkspaceType.Local) {
 					repoLocalPath = (repository as LocalWorkspaceRepositoryDescriptor).localPath;
 					// repo name in this case is the last part of the path after splitting from the path separator
-					repoName = repoLocalPath?.split(/[\\/]/).pop() || 'unknown';
+					repoName = (repository as LocalWorkspaceRepositoryDescriptor).name;
 					for (const currentRepository of currentRepositories) {
 						if (currentRepository.path.replace('\\', '/') === repoLocalPath.replace('\\', '/')) {
 							repo = currentRepository;
@@ -163,10 +164,7 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 
 	getTreeItem(): TreeItem {
 		const description = '';
-		// const tooltip = new MarkdownString('', true);
-		// TODO@ramint Icon needs to change based on workspace type
-		// Note: Tooltips and commands can be resolved async too, in cases where we need to dynamically fetch the
-		// info for it
+		// TODO@ramint Icon needs to change based on workspace type, and need a tooltip.
 		const icon: ThemeIcon = new ThemeIcon(this._type == WorkspaceType.Cloud ? 'cloud' : 'folder');
 
 		const item = new TreeItem(this.name, TreeItemCollapsibleState.Collapsed);
@@ -177,12 +175,6 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 		item.tooltip = undefined;
 		item.resourceUri = undefined;
 		return item;
-	}
-
-	@gate()
-	@debug()
-	override refresh() {
-		this._children = undefined;
 	}
 }
 

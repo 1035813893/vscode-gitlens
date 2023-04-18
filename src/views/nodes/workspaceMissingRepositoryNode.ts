@@ -30,6 +30,10 @@ export class WorkspaceMissingRepositoryNode extends ViewNode<WorkspacesView> {
 		return this._repoName;
 	}
 
+	get workspaceId(): string {
+		return this._workspaceId;
+	}
+
 	getChildren(): ViewNode[] {
 		return [];
 	}
