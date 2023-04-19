@@ -13,7 +13,7 @@ import type {
 import { WorkspaceType } from '../../plus/workspaces/models';
 import type { WorkspacesView } from '../workspacesView';
 import { RepositoryNode } from './repositoryNode';
-import { ViewNode } from './viewNode';
+import { ContextValues, ViewNode } from './viewNode';
 import { WorkspaceMissingRepositoryNode } from './workspaceMissingRepositoryNode';
 
 export class WorkspaceNode extends ViewNode<WorkspacesView> {
@@ -156,9 +156,16 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 		const icon: ThemeIcon = new ThemeIcon(this._type == WorkspaceType.Cloud ? 'cloud' : 'folder');
 
 		const item = new TreeItem(this.name, TreeItemCollapsibleState.Collapsed);
+		let contextValue = `${ContextValues.Workspace}`;
+
+		if (this._type === WorkspaceType.Cloud) {
+			contextValue += '+cloud';
+		} else {
+			contextValue += '+local';
+		}
 		item.id = this.id;
 		item.description = description;
-		item.contextValue = '';
+		item.contextValue = contextValue;
 		item.iconPath = icon;
 		item.tooltip = undefined;
 		item.resourceUri = undefined;

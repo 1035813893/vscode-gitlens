@@ -21,7 +21,7 @@ export class WorkspacesViewNode extends ViewNode<WorkspacesView> {
 	async getChildren(): Promise<ViewNode[]> {
 		if (this._children == null) {
 			const children: WorkspaceNode[] = [];
-			// TODO@ramint Add local workspace nodes (and maybe current workspace)
+
 			const workspaces: (GKCloudWorkspace | GKLocalWorkspace)[] =
 				await this.view.container.workspaces.getWorkspaces();
 			if (workspaces?.length) {
@@ -45,13 +45,8 @@ export class WorkspacesViewNode extends ViewNode<WorkspacesView> {
 		return item;
 	}
 
-	override refresh(reset: boolean = false) {
-		if (this._children == null) return;
-
-		if (reset) {
-			this._children = undefined;
-		}
-
+	override refresh() {
+		this._children = undefined;
 		void this.getChildren();
 	}
 }

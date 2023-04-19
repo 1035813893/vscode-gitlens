@@ -65,6 +65,15 @@ export type CloudWorkspaceProvider =
 	| 'BITBUCKET'
 	| 'AZURE';
 
+export enum CloudWorkspaceProviderType {
+	GitHub = 'GITHUB',
+	GitHubEnterprise = 'GITHUB_ENTERPRISE',
+	GitLab = 'GITLAB',
+	GitLabSelfHosted = 'GITLAB_SELF_HOSTED',
+	Bitbucket = 'BITBUCKET',
+	Azure = 'AZURE',
+}
+
 export const defaultWorkspaceCount = 100;
 export const defaultWorkspaceRepoCount = 100;
 

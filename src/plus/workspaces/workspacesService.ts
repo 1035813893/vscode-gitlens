@@ -1,8 +1,10 @@
 import type { Disposable } from 'vscode';
+import { window } from 'vscode';
 import type { Container } from '../../container';
+import { showMessage } from '../../messages';
 import type { ServerConnection } from '../subscription/serverConnection';
 import type { CloudWorkspaceRepositoryDescriptor, LocalWorkspaceData, WorkspacesResponse } from './models';
-import { GKCloudWorkspace, GKLocalWorkspace } from './models';
+import { CloudWorkspaceProviderType, GKCloudWorkspace, GKLocalWorkspace } from './models';
 import { WorkspacesApi } from './workspacesApi';
 import { WorkspacesLocalProvider } from './workspacesLocalProvider';
 
@@ -74,15 +76,19 @@ export class WorkspacesService implements Disposable {
 		return localWorkspaces;
 	}
 
-	async getWorkspaces(includeRepositories: boolean = false): Promise<(GKCloudWorkspace | GKLocalWorkspace)[]> {
+	async getWorkspaces(options?: {
+		includeCloudRepositories?: boolean;
+		resetCloudWorkspaces?: boolean;
+		resetLocalWorkspaces?: boolean;
+	}): Promise<(GKCloudWorkspace | GKLocalWorkspace)[]> {
 		const workspaces: (GKCloudWorkspace | GKLocalWorkspace)[] = [];
-		if (this._cloudWorkspaces == null) {
-			this._cloudWorkspaces = await this.loadCloudWorkspaces(includeRepositories);
+		if (this._cloudWorkspaces == null || options?.resetCloudWorkspaces) {
+			this._cloudWorkspaces = await this.loadCloudWorkspaces(options?.includeCloudRepositories);
 		}
 
 		workspaces.push(...this._cloudWorkspaces);
 
-		if (this._localWorkspaces == null) {
+		if (this._localWorkspaces == null || options?.resetLocalWorkspaces) {
 			this._localWorkspaces = await this.loadLocalWorkspaces();
 		}
 
@@ -113,5 +119,107 @@ export class WorkspacesService implements Disposable {
 
 	async updateCloudWorkspaceRepoLocalPath(workspaceId: string, repoId: string, localPath: string): Promise<void> {
 		await this._workspacesLocalProvider?.writeCloudWorkspaceDiskPathToMap(workspaceId, repoId, localPath);
+	}
+
+	async createCloudWorkspace(): Promise<void> {
+		const input = window.createInputBox();
+		const quickpick = window.createQuickPick();
+		const quickpickLabelToProviderType: { [label: string]: CloudWorkspaceProviderType } = {
+			GitHub: CloudWorkspaceProviderType.GitHub,
+			'GitHub Enterprise': CloudWorkspaceProviderType.GitHubEnterprise,
+			GitLab: CloudWorkspaceProviderType.GitLab,
+			'GitLab Self-Managed': CloudWorkspaceProviderType.GitLabSelfHosted,
+			Bitbucket: CloudWorkspaceProviderType.Bitbucket,
+			Azure: CloudWorkspaceProviderType.Azure,
+		};
+
+		input.ignoreFocusOut = true;
+
+		const disposables: Disposable[] = [];
+
+		let workspaceName: string | undefined;
+		let workspaceDescription = '';
+		let workspaceProvider: CloudWorkspaceProviderType | undefined;
+		try {
+			workspaceName = await new Promise<string | undefined>(resolve => {
+				disposables.push(
+					input.onDidHide(() => resolve(undefined)),
+					input.onDidAccept(() => {
+						const value = input.value.trim();
+						if (!value) {
+							input.validationMessage = 'Please enter a non-empty name for the workspace';
+							return;
+						}
+
+						resolve(value);
+					}),
+				);
+
+				input.title = 'Create Workspace';
+				input.placeholder = 'Please enter a name for the new workspace';
+				input.prompt = 'Enter your workspace name';
+				input.show();
+			});
+
+			if (!workspaceName) return;
+
+			workspaceDescription = await new Promise<string>(resolve => {
+				disposables.push(
+					input.onDidHide(() => resolve('')),
+					input.onDidAccept(() => {
+						const value = input.value.trim();
+						resolve(value || '');
+					}),
+				);
+
+				input.value = '';
+				input.title = 'Create Workspace';
+				input.placeholder = 'Please enter a description for the new workspace';
+				input.prompt = 'Enter your workspace description';
+				input.show();
+			});
+
+			workspaceProvider = await new Promise<CloudWorkspaceProviderType | undefined>(resolve => {
+				disposables.push(
+					quickpick.onDidHide(() => resolve(undefined)),
+					quickpick.onDidAccept(() => {
+						if (quickpick.activeItems.length !== 0) {
+							resolve(quickpickLabelToProviderType[quickpick.activeItems[0].label]);
+						}
+					}),
+				);
+
+				quickpick.title = 'Create Workspace';
+				quickpick.placeholder = 'Please select a provider for the new workspace';
+				quickpick.items = Object.keys(quickpickLabelToProviderType).map(label => ({ label: label }));
+				quickpick.canSelectMany = false;
+				quickpick.show();
+			});
+
+			if (!workspaceProvider) return;
+		} finally {
+			input.dispose();
+			quickpick.dispose();
+			disposables.forEach(d => void d.dispose());
+		}
+
+		if (!workspaceName || !workspaceProvider) return;
+
+		await this._workspacesApi?.createWorkspace(workspaceName, workspaceDescription, workspaceProvider);
+		await this.getWorkspaces({ resetCloudWorkspaces: true });
+	}
+
+	async deleteCloudWorkspace(workspaceId: string) {
+		const confirmation = await showMessage(
+			'warn',
+			'Are you sure you want to delete this workspace? This cannot be undone.',
+			undefined,
+			null,
+			{ title: 'Confirm' },
+			{ title: 'Cancel', isCloseAffordance: true },
+		);
+		if (confirmation == null || confirmation.title == 'Cancel') return;
+		await this._workspacesApi?.deleteWorkspace(workspaceId);
+		await this.getWorkspaces({ resetCloudWorkspaces: true });
 	}
 }

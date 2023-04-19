@@ -124,6 +124,22 @@ export class WorkspacesView extends ViewBase<WorkspacesViewNode, WorkspacesViewC
 				},
 				this,
 			),
+			registerViewCommand(
+				this.getQualifiedCommand('create'),
+				async () => {
+					await this.container.workspaces.createCloudWorkspace();
+					void this.ensureRoot().triggerChange(true);
+				},
+				this,
+			),
+			registerViewCommand(
+				this.getQualifiedCommand('delete'),
+				async (node: WorkspaceNode) => {
+					await this.container.workspaces.deleteCloudWorkspace(node.workspaceId);
+					void node.getParent()?.triggerChange(true);
+				},
+				this,
+			),
 		];
 	}
 }
