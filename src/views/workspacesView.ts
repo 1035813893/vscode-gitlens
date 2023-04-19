@@ -119,7 +119,7 @@ export class WorkspacesView extends ViewBase<WorkspacesViewNode, WorkspacesViewC
 						workspace instanceof GKCloudWorkspace ? workspace : undefined,
 					);
 					if (workspaceNode != null) {
-						void workspaceNode.refresh?.(true);
+						void workspaceNode.triggerChange(true);
 					}
 				},
 				this,

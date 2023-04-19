@@ -2,7 +2,6 @@ import { ThemeIcon, TreeItem, TreeItemCollapsibleState, Uri } from 'vscode';
 import { encodeUtf8Hex } from '@env/hex';
 import { Schemes } from '../../constants';
 import { GitUri } from '../../git/gitUri';
-import { RemoteResourceType } from '../../git/models/remoteResource';
 import type { Repository } from '../../git/models/repository';
 import type { GitHubAuthorityMetadata } from '../../plus/remotehub';
 import type {
@@ -106,21 +105,10 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 						}
 					}
 
-					// TODO@ramint: This is super hacky. The matching needs to be done way more reliably
-					// and elegantly.
 					for (const currentRepository of currentRepositories) {
 						if (
 							repoLocalPath != null &&
 							currentRepository.path.replace('\\', '/') === repoLocalPath.replace('\\', '/')
-						) {
-							repo = currentRepository;
-						} else if (
-							repoRemoteUrl != null &&
-							(
-								await currentRepository.getRemotes({
-									filter: r => r.provider?.url({ type: RemoteResourceType.Repo }) === repoRemoteUrl,
-								})
-							)?.length > 0
 						) {
 							repo = currentRepository;
 						}
@@ -175,6 +163,10 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 		item.tooltip = undefined;
 		item.resourceUri = undefined;
 		return item;
+	}
+
+	override refresh() {
+		this._children = undefined;
 	}
 }
 
