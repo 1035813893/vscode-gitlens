@@ -12,6 +12,13 @@ export class WorkspacesService implements Disposable {
 	private _workspacesApi: WorkspacesApi | undefined;
 	private _workspacesLocalProvider: WorkspacesLocalProvider | undefined;
 
+	private readonly _getCloudWorkspaceRepos: (
+		workspaceId: string,
+	) => Promise<CloudWorkspaceRepositoryDescriptor[] | undefined> = async (workspaceId: string) => {
+		const workspaceRepos = await this._workspacesApi?.getWorkspaceRepositories(workspaceId);
+		return workspaceRepos?.data?.project?.provider_data?.repositories?.nodes;
+	};
+
 	constructor(private readonly container: Container, private readonly server: ServerConnection) {
 		this._workspacesApi = new WorkspacesApi(this.container, this.server);
 		this._workspacesLocalProvider = new WorkspacesLocalProvider();
@@ -19,19 +26,32 @@ export class WorkspacesService implements Disposable {
 
 	dispose(): void {}
 
-	private async loadCloudWorkspaces() {
+	private async loadCloudWorkspaces(includeRepositories: boolean = false) {
 		const cloudWorkspaces: GKCloudWorkspace[] = [];
-		const workspaceResponse: WorkspacesResponse | undefined = await this._workspacesApi?.getWorkspacesWithRepos();
+		const workspaceResponse: WorkspacesResponse | undefined = includeRepositories
+			? await this._workspacesApi?.getWorkspacesWithRepos()
+			: await this._workspacesApi?.getWorkspaces();
 		const workspaces = workspaceResponse?.data?.projects?.nodes;
 		if (workspaces?.length) {
 			for (const workspace of workspaces) {
-				const repositories: CloudWorkspaceRepositoryDescriptor[] =
-					workspace.provider_data?.repositories?.nodes ?? [];
-				cloudWorkspaces.push(new GKCloudWorkspace(workspace.id, workspace.name, repositories));
+				const repositories: CloudWorkspaceRepositoryDescriptor[] = workspace.provider_data?.repositories?.nodes;
+				cloudWorkspaces.push(
+					new GKCloudWorkspace(workspace.id, workspace.name, this._getCloudWorkspaceRepos, repositories),
+				);
 			}
 		}
 
 		return cloudWorkspaces;
+	}
+
+	async refreshCloudWorkspaceRepos() {
+		if (this._cloudWorkspaces == null) {
+			this._cloudWorkspaces = await this.loadCloudWorkspaces();
+		}
+
+		for (const workspace of this._cloudWorkspaces) {
+			void workspace.loadRepositories(true);
+		}
 	}
 
 	private async loadLocalWorkspaces() {
@@ -54,10 +74,10 @@ export class WorkspacesService implements Disposable {
 		return localWorkspaces;
 	}
 
-	async getWorkspaces(): Promise<(GKCloudWorkspace | GKLocalWorkspace)[]> {
+	async getWorkspaces(includeRepositories: boolean = false): Promise<(GKCloudWorkspace | GKLocalWorkspace)[]> {
 		const workspaces: (GKCloudWorkspace | GKLocalWorkspace)[] = [];
 		if (this._cloudWorkspaces == null) {
-			this._cloudWorkspaces = await this.loadCloudWorkspaces();
+			this._cloudWorkspaces = await this.loadCloudWorkspaces(includeRepositories);
 		}
 
 		workspaces.push(...this._cloudWorkspaces);

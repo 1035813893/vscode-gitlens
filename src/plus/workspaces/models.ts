@@ -8,8 +8,13 @@ export class GKCloudWorkspace {
 	private readonly _type: WorkspaceType = WorkspaceType.Cloud;
 	private readonly _id: string;
 	private readonly _name: string;
-	private readonly _repositories: CloudWorkspaceRepositoryDescriptor[] | undefined;
-	constructor(id: string, name: string, repositories?: CloudWorkspaceRepositoryDescriptor[]) {
+	private _repositories: CloudWorkspaceRepositoryDescriptor[] | undefined;
+	constructor(
+		id: string,
+		name: string,
+		private readonly getReposFn: (workspaceId: string) => Promise<CloudWorkspaceRepositoryDescriptor[] | undefined>,
+		repositories?: CloudWorkspaceRepositoryDescriptor[],
+	) {
 		this._id = id;
 		this._name = name;
 		this._repositories = repositories;
@@ -34,6 +39,12 @@ export class GKCloudWorkspace {
 	getRepository(name: string): CloudWorkspaceRepositoryDescriptor | undefined {
 		return this._repositories?.find(r => r.name === name);
 	}
+
+	async loadRepositories(reset: boolean = false): Promise<void> {
+		if (this._repositories != null && !reset) return;
+
+		this._repositories = await this.getReposFn(this._id);
+	}
 }
 
 export interface CloudWorkspaceRepositoryDescriptor {
@@ -53,6 +64,9 @@ export type CloudWorkspaceProvider =
 	| 'GITLAB_SELF_HOSTED'
 	| 'BITBUCKET'
 	| 'AZURE';
+
+export const defaultWorkspaceCount = 100;
+export const defaultWorkspaceRepoCount = 100;
 
 export interface CloudWorkspaceData {
 	id: string;
@@ -277,6 +291,16 @@ export interface WorkspacesResponse {
 	};
 }
 
+export interface WorkspaceRepositoriesResponse {
+	data: {
+		project: {
+			provider_data: {
+				repositories: CloudWorkspaceConnection<CloudWorkspaceRepositoryData>;
+			};
+		};
+	};
+}
+
 export interface WorkspacePullRequestsResponse {
 	data: {
 		project: {
@@ -312,6 +336,29 @@ export interface WorkspaceIssuesResponse {
 			};
 		};
 	};
+}
+
+export interface CreateWorkspaceResponse {
+	data: {
+		create_project: CloudWorkspaceData;
+	};
+}
+
+export interface DeleteWorkspaceResponse {
+	data: {
+		delete_project: CloudWorkspaceData;
+	};
+}
+
+export interface AddWorkspaceRepoDescriptor {
+	owner: string;
+	repoName: string;
+}
+
+// TODO@ramint Switch to using repo id once that is no longer bugged
+export interface RemoveWorkspaceRepoDescriptor {
+	owner: string;
+	repoName: string;
 }
 
 // Local Workspace Types

@@ -1,5 +1,6 @@
 import { TreeItem, TreeItemCollapsibleState } from 'vscode';
-import type { GKCloudWorkspace, GKLocalWorkspace } from '../../plus/workspaces/models';
+import type { GKLocalWorkspace } from '../../plus/workspaces/models';
+import { GKCloudWorkspace } from '../../plus/workspaces/models';
 import type { WorkspacesView } from '../workspacesView';
 import { ViewNode } from './viewNode';
 import { WorkspaceNode } from './workspaceNode';
@@ -25,6 +26,9 @@ export class WorkspacesViewNode extends ViewNode<WorkspacesView> {
 				await this.view.container.workspaces.getWorkspaces();
 			if (workspaces?.length) {
 				for (const workspace of workspaces) {
+					if (workspace instanceof GKCloudWorkspace && workspace.repositories == null) {
+						await workspace.loadRepositories();
+					}
 					children.push(new WorkspaceNode(this.uri, this.view, this, workspace));
 				}
 			}
