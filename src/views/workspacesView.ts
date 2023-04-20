@@ -35,8 +35,12 @@ export class WorkspacesView extends ViewBase<WorkspacesViewNode, WorkspacesViewC
 		return [
 			registerViewCommand(
 				this.getQualifiedCommand('refresh'),
-				() => {
-					return this.refresh(true);
+				async () => {
+					await this.container.workspaces.getWorkspaces({
+						resetCloudWorkspaces: true,
+						resetLocalWorkspaces: true,
+					});
+					void this.ensureRoot().triggerChange(true);
 				},
 				this,
 			),
