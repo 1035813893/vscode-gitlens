@@ -5,8 +5,18 @@ import { RemoteResourceType } from '../../git/models/remoteResource';
 import { showMessage } from '../../messages';
 import { showRepositoryPicker } from '../../quickpicks/repositoryPicker';
 import type { ServerConnection } from '../subscription/serverConnection';
-import type { CloudWorkspaceRepositoryDescriptor, LocalWorkspaceData, WorkspacesResponse } from './models';
-import { CloudWorkspaceProviderType, GKCloudWorkspace, GKLocalWorkspace } from './models';
+import type {
+	CloudWorkspaceProviderType,
+	CloudWorkspaceRepositoryDescriptor,
+	LocalWorkspaceData,
+	WorkspacesResponse,
+} from './models';
+import {
+	CloudWorkspaceProviderInputType,
+	cloudWorkspaceProviderTypeToRemoteProviderId,
+	GKCloudWorkspace,
+	GKLocalWorkspace,
+} from './models';
 import { WorkspacesApi } from './workspacesApi';
 import { WorkspacesLocalProvider } from './workspacesLocalProvider';
 
@@ -40,7 +50,13 @@ export class WorkspacesService implements Disposable {
 			for (const workspace of workspaces) {
 				const repositories: CloudWorkspaceRepositoryDescriptor[] = workspace.provider_data?.repositories?.nodes;
 				cloudWorkspaces.push(
-					new GKCloudWorkspace(workspace.id, workspace.name, this._getCloudWorkspaceRepos, repositories),
+					new GKCloudWorkspace(
+						workspace.id,
+						workspace.name,
+						workspace.provider as CloudWorkspaceProviderType,
+						this._getCloudWorkspaceRepos,
+						repositories,
+					),
 				);
 			}
 		}
@@ -183,13 +199,13 @@ export class WorkspacesService implements Disposable {
 	async createCloudWorkspace(): Promise<void> {
 		const input = window.createInputBox();
 		const quickpick = window.createQuickPick();
-		const quickpickLabelToProviderType: { [label: string]: CloudWorkspaceProviderType } = {
-			GitHub: CloudWorkspaceProviderType.GitHub,
-			'GitHub Enterprise': CloudWorkspaceProviderType.GitHubEnterprise,
-			GitLab: CloudWorkspaceProviderType.GitLab,
-			'GitLab Self-Managed': CloudWorkspaceProviderType.GitLabSelfHosted,
-			Bitbucket: CloudWorkspaceProviderType.Bitbucket,
-			Azure: CloudWorkspaceProviderType.Azure,
+		const quickpickLabelToProviderType: { [label: string]: CloudWorkspaceProviderInputType } = {
+			GitHub: CloudWorkspaceProviderInputType.GitHub,
+			'GitHub Enterprise': CloudWorkspaceProviderInputType.GitHubEnterprise,
+			GitLab: CloudWorkspaceProviderInputType.GitLab,
+			'GitLab Self-Managed': CloudWorkspaceProviderInputType.GitLabSelfHosted,
+			Bitbucket: CloudWorkspaceProviderInputType.Bitbucket,
+			Azure: CloudWorkspaceProviderInputType.Azure,
 		};
 
 		input.ignoreFocusOut = true;
@@ -198,7 +214,10 @@ export class WorkspacesService implements Disposable {
 
 		let workspaceName: string | undefined;
 		let workspaceDescription = '';
-		let workspaceProvider: CloudWorkspaceProviderType | undefined;
+		let workspaceProvider: CloudWorkspaceProviderInputType | undefined;
+		let hostUrl: string | undefined;
+		let azureOrganizationName: string | undefined;
+		let azureProjectName: string | undefined;
 		try {
 			workspaceName = await new Promise<string | undefined>(resolve => {
 				disposables.push(
@@ -238,7 +257,7 @@ export class WorkspacesService implements Disposable {
 				input.show();
 			});
 
-			workspaceProvider = await new Promise<CloudWorkspaceProviderType | undefined>(resolve => {
+			workspaceProvider = await new Promise<CloudWorkspaceProviderInputType | undefined>(resolve => {
 				disposables.push(
 					quickpick.onDidHide(() => resolve(undefined)),
 					quickpick.onDidAccept(() => {
@@ -256,16 +275,100 @@ export class WorkspacesService implements Disposable {
 			});
 
 			if (!workspaceProvider) return;
+
+			if (
+				workspaceProvider == CloudWorkspaceProviderInputType.GitHubEnterprise ||
+				workspaceProvider == CloudWorkspaceProviderInputType.GitLabSelfHosted
+			) {
+				hostUrl = await new Promise<string | undefined>(resolve => {
+					disposables.push(
+						input.onDidHide(() => resolve(undefined)),
+						input.onDidAccept(() => {
+							const value = input.value.trim();
+							if (!value) {
+								input.validationMessage = 'Please enter a non-empty host URL for the workspace';
+								return;
+							}
+
+							resolve(value);
+						}),
+					);
+
+					input.value = '';
+					input.title = 'Create Workspace';
+					input.placeholder = 'Please enter a host URL for the new workspace';
+					input.prompt = 'Enter your workspace host URL';
+					input.show();
+				});
+
+				if (!hostUrl) return;
+			}
+
+			if (workspaceProvider == CloudWorkspaceProviderInputType.Azure) {
+				azureOrganizationName = await new Promise<string | undefined>(resolve => {
+					disposables.push(
+						input.onDidHide(() => resolve(undefined)),
+						input.onDidAccept(() => {
+							const value = input.value.trim();
+							if (!value) {
+								input.validationMessage =
+									'Please enter a non-empty organization name for the workspace';
+								return;
+							}
+
+							resolve(value);
+						}),
+					);
+
+					input.value = '';
+					input.title = 'Create Workspace';
+					input.placeholder = 'Please enter an organization name for the new workspace';
+					input.prompt = 'Enter your workspace organization name';
+					input.show();
+				});
+
+				if (!azureOrganizationName) return;
+
+				azureProjectName = await new Promise<string | undefined>(resolve => {
+					disposables.push(
+						input.onDidHide(() => resolve(undefined)),
+						input.onDidAccept(() => {
+							const value = input.value.trim();
+							if (!value) {
+								input.validationMessage = 'Please enter a non-empty project name for the workspace';
+								return;
+							}
+
+							resolve(value);
+						}),
+					);
+
+					input.value = '';
+					input.title = 'Create Workspace';
+					input.placeholder = 'Please enter a project name for the new workspace';
+					input.prompt = 'Enter your workspace project name';
+					input.show();
+				});
+
+				if (!azureProjectName) return;
+			}
 		} finally {
 			input.dispose();
 			quickpick.dispose();
 			disposables.forEach(d => void d.dispose());
 		}
 
-		if (!workspaceName || !workspaceProvider) return;
+		const options = {
+			name: workspaceName,
+			description: workspaceDescription,
+			provider: workspaceProvider,
+			hostUrl: hostUrl,
+			azureOrganizationName: azureOrganizationName,
+			azureProjectName: azureProjectName,
+		};
 
-		await this._workspacesApi?.createWorkspace(workspaceName, workspaceDescription, workspaceProvider);
-		await this.getWorkspaces({ resetCloudWorkspaces: true });
+		await this._workspacesApi?.createWorkspace(options);
+		await this.getWorkspaces({ includeCloudRepositories: true, resetCloudWorkspaces: true });
 	}
 
 	async deleteCloudWorkspace(workspaceId: string) {
@@ -279,13 +382,27 @@ export class WorkspacesService implements Disposable {
 		);
 		if (confirmation == null || confirmation.title == 'Cancel') return;
 		await this._workspacesApi?.deleteWorkspace(workspaceId);
-		await this.getWorkspaces({ resetCloudWorkspaces: true });
+		await this.getWorkspaces({ includeCloudRepositories: true, resetCloudWorkspaces: true });
 	}
 
 	async addCloudWorkspaceRepo(workspaceId: string) {
+		const workspace = await this.getCloudWorkspace(workspaceId);
+		if (workspace == null) return;
+
+		const matchingProviderRepos = this.container.git.openRepositories.filter(
+			r =>
+				r.provider != null &&
+				cloudWorkspaceProviderTypeToRemoteProviderId[workspace.provider] === r.provider.id,
+		);
+		if (!matchingProviderRepos.length) {
+			void window.showInformationMessage(`No open repositories found for provider ${workspace.provider}`);
+			return;
+		}
+
 		const pick = await showRepositoryPicker(
 			'Add Repository to Workspace',
 			'Choose which repository to add to the workspace',
+			matchingProviderRepos,
 		);
 		if (pick?.item == null) return;
 
@@ -299,7 +416,7 @@ export class WorkspacesService implements Disposable {
 		await this._workspacesApi?.addReposToWorkspace(workspaceId, [
 			{ owner: remoteOwnerAndName[0], repoName: remoteOwnerAndName[1] },
 		]);
-		await this.getWorkspaces({ resetCloudWorkspaces: true });
+		await this.getWorkspaces({ includeCloudRepositories: true, resetCloudWorkspaces: true });
 	}
 
 	async removeCloudWorkspaceRepo(workspaceId: string, repoName: string) {
@@ -318,6 +435,6 @@ export class WorkspacesService implements Disposable {
 		await this._workspacesApi?.removeReposFromWorkspace(workspaceId, [
 			{ owner: repo.provider_organization_name, repoName: repo.name },
 		]);
-		await this.getWorkspaces({ resetCloudWorkspaces: true });
+		await this.getWorkspaces({ includeCloudRepositories: true, resetCloudWorkspaces: true });
 	}
 }

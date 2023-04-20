@@ -3,14 +3,13 @@ import { Logger } from '../../system/logger';
 import type { ServerConnection } from '../subscription/serverConnection';
 import type {
 	AddWorkspaceRepoDescriptor,
-	CloudWorkspaceProvider,
 	CreateWorkspaceResponse,
 	DeleteWorkspaceResponse,
 	RemoveWorkspaceRepoDescriptor,
 	WorkspaceRepositoriesResponse,
 	WorkspacesResponse,
 } from './models';
-import { defaultWorkspaceCount, defaultWorkspaceRepoCount } from './models';
+import { CloudWorkspaceProviderInputType, defaultWorkspaceCount, defaultWorkspaceRepoCount } from './models';
 
 export class WorkspacesApi {
 	constructor(private readonly container: Container, private readonly server: ServerConnection) {}
@@ -30,28 +29,35 @@ export class WorkspacesApi {
 	// Make the data return a promise for the repos. Should be async so we're set up for dynamic processing.
 	async getWorkspacesWithRepos(options?: {
 		count?: number;
-		repoCount?: number;
 		cursor?: string;
 		page?: number;
+		repoCount?: number;
+		repoPage?: number;
 	}): Promise<WorkspacesResponse | undefined> {
 		const accessToken = await this.getAccessToken();
 		if (accessToken == null) {
 			return;
 		}
 
-		let queryparams = `(first: ${options?.count ?? defaultWorkspaceCount}`;
+		let queryParams = `(first: ${options?.count ?? defaultWorkspaceCount}`;
 		if (options?.cursor) {
-			queryparams += `, after: "${options.cursor}"`;
+			queryParams += `, after: "${options.cursor}"`;
 		} else if (options?.page) {
-			queryparams += `, page: ${options.page}`;
+			queryParams += `, page: ${options.page}`;
 		}
-		queryparams += ')';
+		queryParams += ')';
+
+		let repoQueryParams = `(first: ${options?.repoCount ?? defaultWorkspaceRepoCount}`;
+		if (options?.repoPage) {
+			repoQueryParams += `, page: ${options.repoPage}`;
+		}
+		repoQueryParams += ')';
 
 		const rsp = await this.server.fetchGraphql(
 			{
 				query: `
                     query getWorkspacesWithRepos {
-                        projects ${queryparams} {
+                        projects ${queryParams} {
                             total_count
                             page_info {
                                 end_cursor
@@ -63,10 +69,10 @@ export class WorkspacesApi {
                                 name
                                 provider
                                 provider_data {
-                                    repositories (first: ${options?.repoCount ?? defaultWorkspaceRepoCount}}) {
+                                    repositories ${repoQueryParams} {
                                         total_count
                                         page_info {
-                                            start_cursor
+                                            end_cursor
                                             has_next_page
                                         }
                                         nodes {
@@ -212,11 +218,33 @@ export class WorkspacesApi {
 		return json;
 	}
 
-	async createWorkspace(
-		name: string,
-		description: string,
-		provider: CloudWorkspaceProvider,
-	): Promise<CreateWorkspaceResponse | undefined> {
+	async createWorkspace(options: {
+		name: string;
+		description: string;
+		provider: CloudWorkspaceProviderInputType;
+		hostUrl?: string;
+		azureOrganizationName?: string;
+		azureProjectName?: string;
+	}): Promise<CreateWorkspaceResponse | undefined> {
+		if (!options.name || !options.description || !options.provider) {
+			return;
+		}
+
+		if (
+			options.provider === CloudWorkspaceProviderInputType.Azure &&
+			(!options.azureOrganizationName || !options.azureProjectName)
+		) {
+			return;
+		}
+
+		if (
+			(options.provider === CloudWorkspaceProviderInputType.GitHubEnterprise ||
+				options.provider === CloudWorkspaceProviderInputType.GitLabSelfHosted) &&
+			!options.hostUrl
+		) {
+			return;
+		}
+
 		const accessToken = await this.getAccessToken();
 		if (accessToken == null) {
 			return;
@@ -229,9 +257,12 @@ export class WorkspacesApi {
 						create_project(
 							input: {
 						  		type: GK_PROJECT
-						  		name: "${name}"
-						  		description: "${description}"
-						  		provider: ${provider}
+						  		name: "${options.name}"
+						  		description: "${options.description}"
+						  		provider: ${options.provider}
+								${options.hostUrl ? `host_url: "${options.hostUrl}"` : ''}
+								${options.azureOrganizationName ? `azure_organization_id: "${options.azureOrganizationName}"` : ''}
+								${options.azureProjectName ? `azure_project: "${options.azureProjectName}"` : ''}
 						  		profile_id: "shared-services"
 							}
 						) {

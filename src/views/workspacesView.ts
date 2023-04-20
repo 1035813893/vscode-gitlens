@@ -37,6 +37,7 @@ export class WorkspacesView extends ViewBase<WorkspacesViewNode, WorkspacesViewC
 				this.getQualifiedCommand('refresh'),
 				async () => {
 					await this.container.workspaces.getWorkspaces({
+						includeCloudRepositories: true,
 						resetCloudWorkspaces: true,
 						resetLocalWorkspaces: true,
 					});

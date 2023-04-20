@@ -23,7 +23,7 @@ export class WorkspacesViewNode extends ViewNode<WorkspacesView> {
 			const children: WorkspaceNode[] = [];
 
 			const workspaces: (GKCloudWorkspace | GKLocalWorkspace)[] =
-				await this.view.container.workspaces.getWorkspaces();
+				await this.view.container.workspaces.getWorkspaces({ includeCloudRepositories: true });
 			if (workspaces?.length) {
 				for (const workspace of workspaces) {
 					if (workspace instanceof GKCloudWorkspace && workspace.repositories == null) {

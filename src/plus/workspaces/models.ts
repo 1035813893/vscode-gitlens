@@ -8,15 +8,18 @@ export class GKCloudWorkspace {
 	private readonly _type: WorkspaceType = WorkspaceType.Cloud;
 	private readonly _id: string;
 	private readonly _name: string;
+	private readonly _provider: CloudWorkspaceProviderType;
 	private _repositories: CloudWorkspaceRepositoryDescriptor[] | undefined;
 	constructor(
 		id: string,
 		name: string,
+		provider: CloudWorkspaceProviderType,
 		private readonly getReposFn: (workspaceId: string) => Promise<CloudWorkspaceRepositoryDescriptor[] | undefined>,
 		repositories?: CloudWorkspaceRepositoryDescriptor[],
 	) {
 		this._id = id;
 		this._name = name;
+		this._provider = provider;
 		this._repositories = repositories;
 	}
 
@@ -30,6 +33,10 @@ export class GKCloudWorkspace {
 
 	get name(): string {
 		return this._name;
+	}
+
+	get provider(): CloudWorkspaceProviderType {
+		return this._provider;
 	}
 
 	get repositories(): CloudWorkspaceRepositoryDescriptor[] | undefined {
@@ -57,15 +64,7 @@ export interface CloudWorkspaceRepositoryDescriptor {
 	url: string;
 }
 
-export type CloudWorkspaceProvider =
-	| 'GITHUB'
-	| 'GITHUB_ENTERPRISE'
-	| 'GITLAB'
-	| 'GITLAB_SELF_HOSTED'
-	| 'BITBUCKET'
-	| 'AZURE';
-
-export enum CloudWorkspaceProviderType {
+export enum CloudWorkspaceProviderInputType {
 	GitHub = 'GITHUB',
 	GitHubEnterprise = 'GITHUB_ENTERPRISE',
 	GitLab = 'GITLAB',
@@ -73,6 +72,24 @@ export enum CloudWorkspaceProviderType {
 	Bitbucket = 'BITBUCKET',
 	Azure = 'AZURE',
 }
+
+export enum CloudWorkspaceProviderType {
+	GitHub = 'github',
+	GitHubEnterprise = 'github_enterprise',
+	GitLab = 'gitlab',
+	GitLabSelfHosted = 'gitlab_self_hosted',
+	Bitbucket = 'bitbucket',
+	Azure = 'azure',
+}
+
+export const cloudWorkspaceProviderTypeToRemoteProviderId = {
+	[CloudWorkspaceProviderType.Azure]: 'azure-devops',
+	[CloudWorkspaceProviderType.Bitbucket]: 'bitbucket',
+	[CloudWorkspaceProviderType.GitHub]: 'github',
+	[CloudWorkspaceProviderType.GitHubEnterprise]: 'github',
+	[CloudWorkspaceProviderType.GitLab]: 'gitlab',
+	[CloudWorkspaceProviderType.GitLabSelfHosted]: 'gitlab',
+};
 
 export const defaultWorkspaceCount = 100;
 export const defaultWorkspaceRepoCount = 100;
