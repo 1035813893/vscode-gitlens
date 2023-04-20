@@ -1,6 +1,7 @@
 import type { Disposable } from 'vscode';
 import { window } from 'vscode';
 import type { Container } from '../../container';
+import { RemoteResourceType } from '../../git/models/remoteResource';
 import { showMessage } from '../../messages';
 import { showRepositoryPicker } from '../../quickpicks/repositoryPicker';
 import type { ServerConnection } from '../subscription/serverConnection';
@@ -120,6 +121,63 @@ export class WorkspacesService implements Disposable {
 
 	async updateCloudWorkspaceRepoLocalPath(workspaceId: string, repoId: string, localPath: string): Promise<void> {
 		await this._workspacesLocalProvider?.writeCloudWorkspaceDiskPathToMap(workspaceId, repoId, localPath);
+	}
+
+	async locateWorkspaceRepo(repoName: string, workspaceId?: string) {
+		const repoLocatedUri = (
+			await window.showOpenDialog({
+				title: `Choose a location for ${repoName}`,
+				canSelectFiles: false,
+				canSelectFolders: true,
+				canSelectMany: false,
+			})
+		)?.[0];
+
+		if (repoLocatedUri == null) {
+			return;
+		}
+
+		const repo = await this.container.git.getOrOpenRepository(repoLocatedUri, {
+			closeOnOpen: true,
+			detectNested: false,
+		});
+		if (repo == null) {
+			return;
+		}
+
+		const remoteUrls: string[] = [];
+		for (const remote of await repo.getRemotes()) {
+			const remoteUrl = remote.provider?.url({ type: RemoteResourceType.Repo });
+			if (remoteUrl != null) {
+				remoteUrls.push(remoteUrl);
+			}
+		}
+
+		for (const remoteUrl of remoteUrls) {
+			await this.container.localPath.writeLocalRepoPath({ remoteUrl: remoteUrl }, repoLocatedUri.path);
+		}
+
+		if (workspaceId != null) {
+			const workspaceRepo = (await this.getCloudWorkspace(workspaceId))?.getRepository(repoName);
+			if (workspaceRepo != null) {
+				await this.container.localPath.writeLocalRepoPath(
+					{
+						remoteUrl: workspaceRepo.url,
+						repoInfo: {
+							provider: workspaceRepo.provider,
+							owner: workspaceRepo.provider_organization_name,
+							repoName: workspaceRepo.name,
+						},
+					},
+					repoLocatedUri.path,
+				);
+				await this.container.workspaces.updateCloudWorkspaceRepoLocalPath(
+					workspaceId,
+					workspaceRepo.id,
+					repoLocatedUri.path,
+				);
+			}
+		}
 	}
 
 	async createCloudWorkspace(): Promise<void> {
