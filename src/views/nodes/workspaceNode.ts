@@ -12,6 +12,7 @@ import type {
 } from '../../plus/workspaces/models';
 import { WorkspaceType } from '../../plus/workspaces/models';
 import type { WorkspacesView } from '../workspacesView';
+import { MessageNode } from './common';
 import { RepositoryNode } from './repositoryNode';
 import { ContextValues, ViewNode } from './viewNode';
 import { WorkspaceMissingRepositoryNode } from './workspaceMissingRepositoryNode';
@@ -59,8 +60,13 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 	async getChildren(): Promise<ViewNode[]> {
 		if (this._children == null) {
 			this._children = [];
+			const repositories = await this.getRepositories();
+			if (repositories.length === 0) {
+				this._children.push(new MessageNode(this.view, this, 'No repositories in this workspace.'));
+				return this._children;
+			}
 
-			for (const repository of await this.getRepositories()) {
+			for (const repository of repositories) {
 				const currentRepositories = this.view.container.git.repositories;
 				let repo: Repository | undefined = undefined;
 				let repoId: string | undefined = undefined;

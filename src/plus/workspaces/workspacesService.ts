@@ -115,6 +115,11 @@ export class WorkspacesService implements Disposable {
 		return workspaces;
 	}
 
+	resetWorkspaces() {
+		this._cloudWorkspaces = undefined;
+		this._localWorkspaces = undefined;
+	}
+
 	async getCloudWorkspace(workspaceId: string): Promise<GKCloudWorkspace | undefined> {
 		if (this._cloudWorkspaces == null) {
 			this._cloudWorkspaces = await this.loadCloudWorkspaces();
