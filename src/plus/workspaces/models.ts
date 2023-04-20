@@ -47,6 +47,20 @@ export class GKCloudWorkspace {
 		return this._repositories?.find(r => r.name === name);
 	}
 
+	addRepositories(repositories: CloudWorkspaceRepositoryDescriptor[]): void {
+		if (this._repositories == null) {
+			this._repositories = repositories;
+		} else {
+			this._repositories = this._repositories.concat(repositories);
+		}
+	}
+
+	removeRepositories(repoNames: string[]): void {
+		if (this._repositories == null) return;
+
+		this._repositories = this._repositories.filter(r => !repoNames.includes(r.name));
+	}
+
 	async loadRepositories(reset: boolean = false): Promise<void> {
 		if (this._repositories != null && !reset) return;
 
@@ -60,6 +74,7 @@ export interface CloudWorkspaceRepositoryDescriptor {
 	description: string;
 	repository_id: string;
 	provider: string;
+	provider_organization_id: string;
 	provider_organization_name: string;
 	url: string;
 }
@@ -366,13 +381,32 @@ export interface WorkspaceIssuesResponse {
 
 export interface CreateWorkspaceResponse {
 	data: {
-		create_project: CloudWorkspaceData;
+		create_project: CloudWorkspaceData | null;
 	};
 }
 
 export interface DeleteWorkspaceResponse {
 	data: {
-		delete_project: CloudWorkspaceData;
+		delete_project: CloudWorkspaceData | null;
+	};
+}
+
+export type AddRepositoriesToWorkspaceResponse = {
+	data: {
+		add_repositories_to_project: {
+			id: string;
+			provider_data: {
+				[repoKey: string]: CloudWorkspaceRepositoryData;
+			};
+		} | null;
+	};
+};
+
+export interface RemoveRepositoriesFromWorkspaceResponse {
+	data: {
+		remove_repositories_from_project: {
+			id: string;
+		} | null;
 	};
 }
 

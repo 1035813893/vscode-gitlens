@@ -20,18 +20,15 @@ export class WorkspacesView extends ViewBase<WorkspacesViewNode, WorkspacesViewC
 	constructor(container: Container) {
 		super(container, 'gitlens.views.workspaces', 'Workspaces', 'workspaceView');
 		this._subscriptionDisposable = this.container.subscription.onDidChange(async event => {
-			if (!event.current.account) {
-				this.container.workspaces.resetWorkspaces();
-			} else if (
-				(await ensurePlusFeaturesEnabled()) &&
-				(event.current.state !== event.previous.state ||
-					event.current.account.id !== event.previous.account?.id)
+			if (
+				event.current.account == null ||
+				event.current.account.id !== event.previous?.account?.id ||
+				event.current.state !== event.previous.state
 			) {
-				void this.container.workspaces.getWorkspaces({
-					includeCloudRepositories: true,
-					resetCloudWorkspaces: true,
-					resetLocalWorkspaces: true,
-				});
+				this.container.workspaces.resetWorkspaces();
+				if (await ensurePlusFeaturesEnabled()) {
+					await this.container.workspaces.getWorkspaces();
+				}
 			}
 
 			void this.ensureRoot().triggerChange(true);
@@ -92,7 +89,6 @@ export class WorkspacesView extends ViewBase<WorkspacesViewNode, WorkspacesViewC
 				this.getQualifiedCommand('refresh'),
 				async () => {
 					await this.container.workspaces.getWorkspaces({
-						includeCloudRepositories: true,
 						resetCloudWorkspaces: true,
 						resetLocalWorkspaces: true,
 					});

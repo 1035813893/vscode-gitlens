@@ -40,11 +40,11 @@ export class WorkspacesService implements Disposable {
 
 	dispose(): void {}
 
-	private async loadCloudWorkspaces(includeRepositories: boolean = false) {
+	private async loadCloudWorkspaces(excludeRepositories: boolean = false) {
 		const cloudWorkspaces: GKCloudWorkspace[] = [];
-		const workspaceResponse: WorkspacesResponse | undefined = includeRepositories
-			? await this._workspacesApi?.getWorkspacesWithRepos()
-			: await this._workspacesApi?.getWorkspaces();
+		const workspaceResponse: WorkspacesResponse | undefined = excludeRepositories
+			? await this._workspacesApi?.getWorkspaces()
+			: await this._workspacesApi?.getWorkspacesWithRepos();
 		const workspaces = workspaceResponse?.data?.projects?.nodes;
 		if (workspaces?.length) {
 			for (const workspace of workspaces) {
@@ -95,13 +95,13 @@ export class WorkspacesService implements Disposable {
 	}
 
 	async getWorkspaces(options?: {
-		includeCloudRepositories?: boolean;
+		excludeCloudRepositories?: boolean;
 		resetCloudWorkspaces?: boolean;
 		resetLocalWorkspaces?: boolean;
 	}): Promise<(GKCloudWorkspace | GKLocalWorkspace)[]> {
 		const workspaces: (GKCloudWorkspace | GKLocalWorkspace)[] = [];
 		if (this._cloudWorkspaces == null || options?.resetCloudWorkspaces) {
-			this._cloudWorkspaces = await this.loadCloudWorkspaces(options?.includeCloudRepositories);
+			this._cloudWorkspaces = await this.loadCloudWorkspaces(options?.excludeCloudRepositories);
 		}
 
 		workspaces.push(...this._cloudWorkspaces);
@@ -186,7 +186,7 @@ export class WorkspacesService implements Disposable {
 						remoteUrl: workspaceRepo.url,
 						repoInfo: {
 							provider: workspaceRepo.provider,
-							owner: workspaceRepo.provider_organization_name,
+							owner: workspaceRepo.provider_organization_id,
 							repoName: workspaceRepo.name,
 						},
 					},
@@ -372,8 +372,20 @@ export class WorkspacesService implements Disposable {
 			azureProjectName: azureProjectName,
 		};
 
-		await this._workspacesApi?.createWorkspace(options);
-		await this.getWorkspaces({ includeCloudRepositories: true, resetCloudWorkspaces: true });
+		const response = await this._workspacesApi?.createWorkspace(options);
+		const createdProjectData = response?.data?.create_project;
+		if (createdProjectData != null) {
+			// Add the new workspace to cloud workspaces
+			this._cloudWorkspaces?.push(
+				new GKCloudWorkspace(
+					createdProjectData.id,
+					createdProjectData.name,
+					createdProjectData.provider as CloudWorkspaceProviderType,
+					this._getCloudWorkspaceRepos,
+					[],
+				),
+			);
+		}
 	}
 
 	async deleteCloudWorkspace(workspaceId: string) {
@@ -386,19 +398,27 @@ export class WorkspacesService implements Disposable {
 			{ title: 'Cancel', isCloseAffordance: true },
 		);
 		if (confirmation == null || confirmation.title == 'Cancel') return;
-		await this._workspacesApi?.deleteWorkspace(workspaceId);
-		await this.getWorkspaces({ includeCloudRepositories: true, resetCloudWorkspaces: true });
+		const response = await this._workspacesApi?.deleteWorkspace(workspaceId);
+		if (response?.data?.delete_project?.id === workspaceId) {
+			// Remove the workspace from the local workspace list.
+			this._cloudWorkspaces = this._cloudWorkspaces?.filter(w => w.id !== workspaceId);
+		}
 	}
 
 	async addCloudWorkspaceRepo(workspaceId: string) {
 		const workspace = await this.getCloudWorkspace(workspaceId);
 		if (workspace == null) return;
 
-		const matchingProviderRepos = this.container.git.openRepositories.filter(
-			r =>
-				r.provider != null &&
-				cloudWorkspaceProviderTypeToRemoteProviderId[workspace.provider] === r.provider.id,
-		);
+		const matchingProviderRepos = [];
+		for (const repo of this.container.git.openRepositories) {
+			const matchingRemotes = await repo.getRemotes({
+				filter: r => r.provider?.id === cloudWorkspaceProviderTypeToRemoteProviderId[workspace.provider],
+			});
+			if (matchingRemotes.length) {
+				matchingProviderRepos.push(repo);
+			}
+		}
+
 		if (!matchingProviderRepos.length) {
 			void window.showInformationMessage(`No open repositories found for provider ${workspace.provider}`);
 			return;
@@ -416,16 +436,45 @@ export class WorkspacesService implements Disposable {
 		if (repo == null) return;
 
 		const remote = (await repo.getRemote('origin')) || (await repo.getRemotes())?.[0];
-		const remoteOwnerAndName = remote?.provider?.path.split('/');
+		const remoteOwnerAndName = remote?.provider?.path?.split('/') || remote?.path?.split('/');
 		if (remoteOwnerAndName == null || remoteOwnerAndName.length !== 2) return;
-		await this._workspacesApi?.addReposToWorkspace(workspaceId, [
+		const response = await this._workspacesApi?.addReposToWorkspace(workspaceId, [
 			{ owner: remoteOwnerAndName[0], repoName: remoteOwnerAndName[1] },
 		]);
-		await this.getWorkspaces({ includeCloudRepositories: true, resetCloudWorkspaces: true });
+
+		if (response?.data.add_repositories_to_project == null) return;
+		const newRepoDescriptors = Object.values(
+			response.data.add_repositories_to_project.provider_data,
+		) as CloudWorkspaceRepositoryDescriptor[];
+		if (newRepoDescriptors.length === 0) return;
+
+		workspace.addRepositories(newRepoDescriptors);
+		if (repo.uri.fsPath) {
+			const remoteUrls: string[] = [];
+			for (const remote of await repo.getRemotes()) {
+				const remoteUrl = remote.provider?.url({ type: RemoteResourceType.Repo });
+				if (remoteUrl != null) {
+					remoteUrls.push(remoteUrl);
+				}
+			}
+
+			for (const remoteUrl of remoteUrls) {
+				await this.container.localPath.writeLocalRepoPath({ remoteUrl: remoteUrl }, repo.uri.fsPath);
+			}
+
+			await this._workspacesLocalProvider?.writeCloudWorkspaceDiskPathToMap(
+				workspaceId,
+				newRepoDescriptors[0].id,
+				repo.uri.fsPath,
+			);
+		}
 	}
 
 	async removeCloudWorkspaceRepo(workspaceId: string, repoName: string) {
-		const repo = (await this.getCloudWorkspace(workspaceId))?.getRepository(repoName);
+		const workspace = await this.getCloudWorkspace(workspaceId);
+		if (workspace == null) return;
+
+		const repo = workspace.getRepository(repoName);
 		if (repo == null) return;
 
 		const confirmation = await showMessage(
@@ -437,9 +486,12 @@ export class WorkspacesService implements Disposable {
 			{ title: 'Cancel', isCloseAffordance: true },
 		);
 		if (confirmation == null || confirmation.title == 'Cancel') return;
-		await this._workspacesApi?.removeReposFromWorkspace(workspaceId, [
-			{ owner: repo.provider_organization_name, repoName: repo.name },
+		const response = await this._workspacesApi?.removeReposFromWorkspace(workspaceId, [
+			{ owner: repo.provider_organization_id, repoName: repo.name },
 		]);
-		await this.getWorkspaces({ includeCloudRepositories: true, resetCloudWorkspaces: true });
+
+		if (response?.data.remove_repositories_from_project == null) return;
+
+		workspace.removeRepositories([repoName]);
 	}
 }

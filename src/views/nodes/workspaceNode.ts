@@ -93,7 +93,7 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 					repoRemoteUrl = (repository as CloudWorkspaceRepositoryDescriptor).url;
 					repoName = (repository as CloudWorkspaceRepositoryDescriptor).name;
 					repoProvider = (repository as CloudWorkspaceRepositoryDescriptor).provider;
-					repoOwner = (repository as CloudWorkspaceRepositoryDescriptor).provider_organization_name;
+					repoOwner = (repository as CloudWorkspaceRepositoryDescriptor).provider_organization_id;
 
 					if (repoLocalPath == null) {
 						const repoLocalPaths = await this.view.container.localPath.getLocalRepoPaths({

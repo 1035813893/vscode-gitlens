@@ -2,9 +2,11 @@ import type { Container } from '../../container';
 import { Logger } from '../../system/logger';
 import type { ServerConnection } from '../subscription/serverConnection';
 import type {
+	AddRepositoriesToWorkspaceResponse,
 	AddWorkspaceRepoDescriptor,
 	CreateWorkspaceResponse,
 	DeleteWorkspaceResponse,
+	RemoveRepositoriesFromWorkspaceResponse,
 	RemoveWorkspaceRepoDescriptor,
 	WorkspaceRepositoriesResponse,
 	WorkspacesResponse,
@@ -269,9 +271,7 @@ export class WorkspacesApi {
 							id,
 							name,
 							description,
-							host_url,
-							provider,
-							created_by
+							provider
 						}
                     }
 				`,
@@ -320,7 +320,10 @@ export class WorkspacesApi {
 		return json;
 	}
 
-	async addReposToWorkspace(workspaceId: string, repos: AddWorkspaceRepoDescriptor[]): Promise<void> {
+	async addReposToWorkspace(
+		workspaceId: string,
+		repos: AddWorkspaceRepoDescriptor[],
+	): Promise<AddRepositoriesToWorkspaceResponse | undefined> {
 		if (repos.length === 0) {
 			return;
 		}
@@ -334,6 +337,21 @@ export class WorkspacesApi {
 		reposQuery += repos.map(r => `{ provider_organization_id: "${r.owner}", name: "${r.repoName}" }`).join(',');
 		reposQuery += ']';
 
+		let count = 1;
+		const reposReturnQuery = repos
+			.map(
+				r => `Repository${count++}: repository(provider_organization_id: "${r.owner}", name: "${r.repoName}") {
+			id
+			name
+			repository_id
+			provider
+			provider_organization_id
+			provider_organization_name
+			url
+		}`,
+			)
+			.join(',');
+
 		const rsp = await this.server.fetchGraphql(
 			{
 				query: `
@@ -345,6 +363,9 @@ export class WorkspacesApi {
 							}
 						) {
 							id
+							provider_data {
+								${reposReturnQuery}
+							}
 						}
                     }
 				`,
@@ -356,9 +377,18 @@ export class WorkspacesApi {
 			Logger.error(undefined, `Adding repositories to workspace: (${rsp.status}) ${rsp.statusText}`);
 			throw new Error(rsp.statusText);
 		}
+
+		const json: AddRepositoriesToWorkspaceResponse | undefined = (await rsp.json()) as
+			| AddRepositoriesToWorkspaceResponse
+			| undefined;
+
+		return json;
 	}
 
-	async removeReposFromWorkspace(workspaceId: string, repos: RemoveWorkspaceRepoDescriptor[]): Promise<void> {
+	async removeReposFromWorkspace(
+		workspaceId: string,
+		repos: RemoveWorkspaceRepoDescriptor[],
+	): Promise<RemoveRepositoriesFromWorkspaceResponse | undefined> {
 		if (repos.length === 0) {
 			return;
 		}
@@ -394,5 +424,11 @@ export class WorkspacesApi {
 			Logger.error(undefined, `Removing repositories from workspace: (${rsp.status}) ${rsp.statusText}`);
 			throw new Error(rsp.statusText);
 		}
+
+		const json: RemoveRepositoriesFromWorkspaceResponse | undefined = (await rsp.json()) as
+			| RemoveRepositoriesFromWorkspaceResponse
+			| undefined;
+
+		return json;
 	}
 }
