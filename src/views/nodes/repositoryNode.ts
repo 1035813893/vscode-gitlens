@@ -7,7 +7,7 @@ import { GitRemote } from '../../git/models/remote';
 import type { RepositoryChangeEvent, RepositoryFileSystemChangeEvent } from '../../git/models/repository';
 import { Repository, RepositoryChange, RepositoryChangeComparisonMode } from '../../git/models/repository';
 import type { GitStatus } from '../../git/models/status';
-import type { GKCloudWorkspace, GKLocalWorkspace } from '../../plus/workspaces/models';
+import { GKCloudWorkspace, GKLocalWorkspace } from '../../plus/workspaces/models';
 import { findLastIndex } from '../../system/array';
 import { gate } from '../../system/decorators/gate';
 import { debug, log } from '../../system/decorators/log';
@@ -202,6 +202,14 @@ export class RepositoryNode extends SubscribeableViewNode<RepositoriesView | Wor
 		}
 		if (this.options?.workspace) {
 			contextValue += '+workspace';
+			if (this.options.workspace instanceof GKCloudWorkspace) {
+				contextValue += '+cloud';
+			} else if (this.options.workspace instanceof GKLocalWorkspace) {
+				contextValue += '+local';
+			}
+		}
+		if (this.repo.virtual) {
+			contextValue += '+virtual';
 		}
 
 		const status = await this._status;

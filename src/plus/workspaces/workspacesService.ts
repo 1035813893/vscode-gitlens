@@ -2,6 +2,7 @@ import type { Disposable } from 'vscode';
 import { window } from 'vscode';
 import type { Container } from '../../container';
 import { showMessage } from '../../messages';
+import { showRepositoryPicker } from '../../quickpicks/repositoryPicker';
 import type { ServerConnection } from '../subscription/serverConnection';
 import type { CloudWorkspaceRepositoryDescriptor, LocalWorkspaceData, WorkspacesResponse } from './models';
 import { CloudWorkspaceProviderType, GKCloudWorkspace, GKLocalWorkspace } from './models';
@@ -220,6 +221,45 @@ export class WorkspacesService implements Disposable {
 		);
 		if (confirmation == null || confirmation.title == 'Cancel') return;
 		await this._workspacesApi?.deleteWorkspace(workspaceId);
+		await this.getWorkspaces({ resetCloudWorkspaces: true });
+	}
+
+	async addCloudWorkspaceRepo(workspaceId: string) {
+		const pick = await showRepositoryPicker(
+			'Add Repository to Workspace',
+			'Choose which repository to add to the workspace',
+		);
+		if (pick?.item == null) return;
+
+		const repoPath = pick.repoPath;
+		const repo = this.container.git.getRepository(repoPath);
+		if (repo == null) return;
+
+		const remote = (await repo.getRemote('origin')) || (await repo.getRemotes())?.[0];
+		const remoteOwnerAndName = remote?.provider?.path.split('/');
+		if (remoteOwnerAndName == null || remoteOwnerAndName.length !== 2) return;
+		await this._workspacesApi?.addReposToWorkspace(workspaceId, [
+			{ owner: remoteOwnerAndName[0], repoName: remoteOwnerAndName[1] },
+		]);
+		await this.getWorkspaces({ resetCloudWorkspaces: true });
+	}
+
+	async removeCloudWorkspaceRepo(workspaceId: string, repoName: string) {
+		const repo = (await this.getCloudWorkspace(workspaceId))?.getRepository(repoName);
+		if (repo == null) return;
+
+		const confirmation = await showMessage(
+			'warn',
+			`Are you sure you want to remove ${repoName} from this workspace? This cannot be undone.`,
+			undefined,
+			null,
+			{ title: 'Confirm' },
+			{ title: 'Cancel', isCloseAffordance: true },
+		);
+		if (confirmation == null || confirmation.title == 'Cancel') return;
+		await this._workspacesApi?.removeReposFromWorkspace(workspaceId, [
+			{ owner: repo.provider_organization_name, repoName: repo.name },
+		]);
 		await this.getWorkspaces({ resetCloudWorkspaces: true });
 	}
 }

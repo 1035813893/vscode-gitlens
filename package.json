@@ -6793,10 +6793,22 @@
 				"enablement": "!operationInProgress"
 			},
 			{
+				"command": "gitlens.views.workspaces.addRepo",
+				"title": "Add Repository to Workspace...",
+				"category": "GitLens",
+				"icon": "$(add)"
+			},
+			{
 				"command": "gitlens.views.workspaces.locateRepo",
 				"title": "Locate Repository",
 				"category": "GitLens",
 				"icon": "$(folder-opened)"
+			},
+			{
+				"command": "gitlens.views.workspaces.removeRepo",
+				"title": "Remove Repository from Workspace...",
+				"category": "GitLens",
+				"icon": "$(trash)"
 			},
 			{
 				"command": "gitlens.views.workspaces.refresh",
@@ -9089,7 +9101,15 @@
 					"when": "false"
 				},
 				{
+					"command": "gitlens.views.workspaces.addRepo",
+					"when": "false"
+				},
+				{
 					"command": "gitlens.views.workspaces.locateRepo",
+					"when": "false"
+				},
+				{
+					"command": "gitlens.views.workspaces.removeRepo",
 					"when": "false"
 				},
 				{
@@ -10607,7 +10627,7 @@
 				{
 					"command": "gitlens.views.workspaces.delete",
 					"when": "viewItem =~ /gitlens:workspace\\b(?=.*?\\b\\+cloud\\b)/",
-					"group": "inline@1"
+					"group": "inline@2"
 				},
 				{
 					"command": "gitlens.views.switchToAnotherBranch",
@@ -11748,9 +11768,19 @@
 					"group": "inline@1"
 				},
 				{
+					"command": "gitlens.views.workspaces.addRepo",
+					"when": "viewItem =~ /gitlens:workspace\\b(?=.*?\\b\\+cloud\\b)/",
+					"group": "inline@1"
+				},
+				{
 					"command": "gitlens.views.workspaces.locateRepo",
-					"when": "viewItem =~ /gitlens:repository\\b(?=.*?\\b\\+workspace\\b)/ || viewItem =~ /gitlens:workspaceMissingRepository\\b/",
+					"when": "viewItem =~ /gitlens:repository\\b(?=.*?\\b\\+workspace\\b)(?!.*?\\b\\+local\\b)/ || viewItem =~ /gitlens:workspaceMissingRepository\\b/",
 					"group": "inline@2"
+				},
+				{
+					"command": "gitlens.views.workspaces.removeRepo",
+					"when": "viewItem =~ /gitlens:repository\\b(?=.*?\\b\\+workspace\\b)(?!.*?\\b\\+local\\b)/ || viewItem =~ /gitlens:workspaceMissingRepository\\b/",
+					"group": "inline@3"
 				},
 				{
 					"command": "gitlens.views.deleteStash",
