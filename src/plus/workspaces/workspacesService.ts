@@ -2,10 +2,11 @@ import type { Disposable } from 'vscode';
 import { window } from 'vscode';
 import type { Container } from '../../container';
 import { RemoteResourceType } from '../../git/models/remoteResource';
-import { showMessage } from '../../messages';
+import type { Repository } from '../../git/models/repository';
 import { showRepositoryPicker } from '../../quickpicks/repositoryPicker';
 import type { ServerConnection } from '../subscription/serverConnection';
 import type {
+	AddWorkspaceRepoDescriptor,
 	CloudWorkspaceProviderType,
 	CloudWorkspaceRepositoryDescriptor,
 	LocalWorkspaceData,
@@ -13,6 +14,7 @@ import type {
 } from './models';
 import {
 	CloudWorkspaceProviderInputType,
+	cloudWorkspaceProviderInputTypeToRemoteProviderId,
 	cloudWorkspaceProviderTypeToRemoteProviderId,
 	GKCloudWorkspace,
 	GKLocalWorkspace,
@@ -223,6 +225,8 @@ export class WorkspacesService implements Disposable {
 		let hostUrl: string | undefined;
 		let azureOrganizationName: string | undefined;
 		let azureProjectName: string | undefined;
+		const matchingProviderRepos: Repository[] = [];
+		let includeReposResponse;
 		try {
 			workspaceName = await new Promise<string | undefined>(resolve => {
 				disposables.push(
@@ -357,6 +361,27 @@ export class WorkspacesService implements Disposable {
 
 				if (!azureProjectName) return;
 			}
+
+			if (workspaceProvider != null) {
+				for (const repo of this.container.git.openRepositories) {
+					const matchingRemotes = await repo.getRemotes({
+						filter: r =>
+							r.provider?.id === cloudWorkspaceProviderInputTypeToRemoteProviderId[workspaceProvider!],
+					});
+					if (matchingRemotes.length) {
+						matchingProviderRepos.push(repo);
+					}
+				}
+
+				if (matchingProviderRepos.length) {
+					includeReposResponse = await window.showInformationMessage(
+						'Would you like to include your open repositories in the workspace?',
+						{ modal: true },
+						{ title: 'Yes' },
+						{ title: 'No', isCloseAffordance: true },
+					);
+				}
+			}
 		} finally {
 			input.dispose();
 			quickpick.dispose();
@@ -385,15 +410,60 @@ export class WorkspacesService implements Disposable {
 					[],
 				),
 			);
+
+			const newWorkspace = await this.getCloudWorkspace(createdProjectData.id);
+			if (newWorkspace != null && includeReposResponse?.title === 'Yes') {
+				const repoInputs: AddWorkspaceRepoDescriptor[] = [];
+				for (const repo of matchingProviderRepos) {
+					const remote = (await repo.getRemote('origin')) || (await repo.getRemotes())?.[0];
+					const remoteOwnerAndName = remote?.provider?.path?.split('/') || remote?.path?.split('/');
+					if (remoteOwnerAndName == null || remoteOwnerAndName.length !== 2) continue;
+					repoInputs.push({ owner: remoteOwnerAndName[0], repoName: remoteOwnerAndName[1] });
+				}
+
+				if (repoInputs.length) {
+					const response = await this._workspacesApi?.addReposToWorkspace(newWorkspace.id, repoInputs);
+					if (response?.data.add_repositories_to_project == null) return;
+					const newRepoDescriptors = Object.values(
+						response.data.add_repositories_to_project.provider_data,
+					) as CloudWorkspaceRepositoryDescriptor[];
+					if (newRepoDescriptors.length === 0) return;
+					newWorkspace.addRepositories(newRepoDescriptors);
+					for (const repo of matchingProviderRepos) {
+						if (!repo.uri.fsPath) continue;
+						const remoteUrls: string[] = [];
+						for (const remote of await repo.getRemotes()) {
+							const remoteUrl = remote.provider?.url({ type: RemoteResourceType.Repo });
+							if (remoteUrl != null) {
+								remoteUrls.push(remoteUrl);
+							}
+						}
+
+						for (const remoteUrl of remoteUrls) {
+							await this.container.localPath.writeLocalRepoPath(
+								{ remoteUrl: remoteUrl },
+								repo.uri.fsPath,
+							);
+						}
+
+						const repoDescriptor = newWorkspace.getRepository(repo.name);
+						if (repoDescriptor == null) continue;
+
+						await this._workspacesLocalProvider?.writeCloudWorkspaceDiskPathToMap(
+							newWorkspace.id,
+							repoDescriptor.id,
+							repo.uri.fsPath,
+						);
+					}
+				}
+			}
 		}
 	}
 
 	async deleteCloudWorkspace(workspaceId: string) {
-		const confirmation = await showMessage(
-			'warn',
-			'Are you sure you want to delete this workspace? This cannot be undone.',
-			undefined,
-			null,
+		const confirmation = await window.showWarningMessage(
+			`Are you sure you want to delete this workspace? This cannot be undone.`,
+			{ modal: true },
 			{ title: 'Confirm' },
 			{ title: 'Cancel', isCloseAffordance: true },
 		);
@@ -477,11 +547,9 @@ export class WorkspacesService implements Disposable {
 		const repo = workspace.getRepository(repoName);
 		if (repo == null) return;
 
-		const confirmation = await showMessage(
-			'warn',
+		const confirmation = await window.showWarningMessage(
 			`Are you sure you want to remove ${repoName} from this workspace? This cannot be undone.`,
-			undefined,
-			null,
+			{ modal: true },
 			{ title: 'Confirm' },
 			{ title: 'Cancel', isCloseAffordance: true },
 		);

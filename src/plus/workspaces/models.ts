@@ -106,6 +106,15 @@ export const cloudWorkspaceProviderTypeToRemoteProviderId = {
 	[CloudWorkspaceProviderType.GitLabSelfHosted]: 'gitlab',
 };
 
+export const cloudWorkspaceProviderInputTypeToRemoteProviderId = {
+	[CloudWorkspaceProviderInputType.Azure]: 'azure-devops',
+	[CloudWorkspaceProviderInputType.Bitbucket]: 'bitbucket',
+	[CloudWorkspaceProviderInputType.GitHub]: 'github',
+	[CloudWorkspaceProviderInputType.GitHubEnterprise]: 'github',
+	[CloudWorkspaceProviderInputType.GitLab]: 'gitlab',
+	[CloudWorkspaceProviderInputType.GitLabSelfHosted]: 'gitlab',
+};
+
 export const defaultWorkspaceCount = 100;
 export const defaultWorkspaceRepoCount = 100;
 
