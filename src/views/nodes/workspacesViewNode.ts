@@ -7,15 +7,14 @@ import { WorkspaceNode } from './workspaceNode';
 
 export class WorkspacesViewNode extends ViewNode<WorkspacesView> {
 	static key = ':workspaces';
-	static getId(type: string): string {
-		return `gitlens${this.key}(${type})`;
+	static getId(): string {
+		return `gitlens${this.key}`;
 	}
 
-	private _type: string = 'TODO';
 	private _children: WorkspaceNode[] | undefined;
 
 	override get id(): string {
-		return WorkspacesViewNode.getId(this._type);
+		return WorkspacesViewNode.getId();
 	}
 
 	async getChildren(): Promise<ViewNode[]> {

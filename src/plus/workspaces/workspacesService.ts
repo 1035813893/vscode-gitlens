@@ -66,16 +66,6 @@ export class WorkspacesService implements Disposable {
 		return cloudWorkspaces;
 	}
 
-	async refreshCloudWorkspaceRepos() {
-		if (this._cloudWorkspaces == null) {
-			this._cloudWorkspaces = await this.loadCloudWorkspaces();
-		}
-
-		for (const workspace of this._cloudWorkspaces) {
-			void workspace.loadRepositories(true);
-		}
-	}
-
 	private async loadLocalWorkspaces() {
 		const localWorkspaces: GKLocalWorkspace[] = [];
 		const workspaceFileData: LocalWorkspaceData =
@@ -94,6 +84,14 @@ export class WorkspacesService implements Disposable {
 		}
 
 		return localWorkspaces;
+	}
+
+	private async getCloudWorkspace(workspaceId: string): Promise<GKCloudWorkspace | undefined> {
+		if (this._cloudWorkspaces == null) {
+			this._cloudWorkspaces = await this.loadCloudWorkspaces();
+		}
+
+		return this._cloudWorkspaces?.find(workspace => workspace.id === workspaceId);
 	}
 
 	async getWorkspaces(options?: {
@@ -120,22 +118,6 @@ export class WorkspacesService implements Disposable {
 	resetWorkspaces() {
 		this._cloudWorkspaces = undefined;
 		this._localWorkspaces = undefined;
-	}
-
-	async getCloudWorkspace(workspaceId: string): Promise<GKCloudWorkspace | undefined> {
-		if (this._cloudWorkspaces == null) {
-			this._cloudWorkspaces = await this.loadCloudWorkspaces();
-		}
-
-		return this._cloudWorkspaces?.find(workspace => workspace.id === workspaceId);
-	}
-
-	async getLocalWorkspace(workspaceId: string): Promise<GKLocalWorkspace | undefined> {
-		if (this._localWorkspaces == null) {
-			this._localWorkspaces = await this.loadLocalWorkspaces();
-		}
-
-		return this._localWorkspaces?.find(workspace => workspace.id === workspaceId);
 	}
 
 	async getCloudWorkspaceRepoPath(cloudWorkspaceId: string, repoId: string): Promise<string | undefined> {
@@ -205,7 +187,9 @@ export class WorkspacesService implements Disposable {
 
 	async createCloudWorkspace(): Promise<void> {
 		const input = window.createInputBox();
+		input.title = 'Create Cloud Workspace';
 		const quickpick = window.createQuickPick();
+		quickpick.title = 'Create Cloud Workspace';
 		const quickpickLabelToProviderType: { [label: string]: CloudWorkspaceProviderInputType } = {
 			GitHub: CloudWorkspaceProviderInputType.GitHub,
 			'GitHub Enterprise': CloudWorkspaceProviderInputType.GitHubEnterprise,
@@ -242,7 +226,6 @@ export class WorkspacesService implements Disposable {
 					}),
 				);
 
-				input.title = 'Create Workspace';
 				input.placeholder = 'Please enter a name for the new workspace';
 				input.prompt = 'Enter your workspace name';
 				input.show();
@@ -276,7 +259,6 @@ export class WorkspacesService implements Disposable {
 					}),
 				);
 
-				quickpick.title = 'Create Workspace';
 				quickpick.placeholder = 'Please select a provider for the new workspace';
 				quickpick.items = Object.keys(quickpickLabelToProviderType).map(label => ({ label: label }));
 				quickpick.canSelectMany = false;
@@ -304,7 +286,6 @@ export class WorkspacesService implements Disposable {
 					);
 
 					input.value = '';
-					input.title = 'Create Workspace';
 					input.placeholder = 'Please enter a host URL for the new workspace';
 					input.prompt = 'Enter your workspace host URL';
 					input.show();
@@ -330,7 +311,6 @@ export class WorkspacesService implements Disposable {
 					);
 
 					input.value = '';
-					input.title = 'Create Workspace';
 					input.placeholder = 'Please enter an organization name for the new workspace';
 					input.prompt = 'Enter your workspace organization name';
 					input.show();
@@ -353,7 +333,6 @@ export class WorkspacesService implements Disposable {
 					);
 
 					input.value = '';
-					input.title = 'Create Workspace';
 					input.placeholder = 'Please enter a project name for the new workspace';
 					input.prompt = 'Enter your workspace project name';
 					input.show();

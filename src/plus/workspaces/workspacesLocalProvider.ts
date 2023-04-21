@@ -1,3 +1,4 @@
+// TODO@ramint: This will break on vscode-web. Need to split it out somehow.
 // eslint-disable-next-line no-restricted-imports
 import os from 'os';
 // eslint-disable-next-line no-restricted-imports
@@ -23,17 +24,17 @@ export class WorkspacesLocalProvider {
 		return this._cloudWorkspaceRepoPathMap ?? {};
 	}
 
-	async getCloudWorkspaceRepoPath(cloudWorkspaceId: string, repoId: string): Promise<string | undefined> {
-		const cloudWorkspaceRepoPathMap = await this.getCloudWorkspaceRepoPathMap();
-		return cloudWorkspaceRepoPathMap[cloudWorkspaceId]?.repoPaths[repoId];
-	}
-
-	async loadCloudWorkspaceRepoPathMap() {
+	private async loadCloudWorkspaceRepoPathMap() {
 		const localFilePath = path.join(os.homedir(), localGKSharedDataFolder, cloudWorkspaceDataFilePath);
 		try {
 			const data = await workspace.fs.readFile(Uri.file(localFilePath));
 			this._cloudWorkspaceRepoPathMap = (JSON.parse(data.toString())?.workspaces ?? {}) as CloudWorkspacesPathMap;
 		} catch (error) {}
+	}
+
+	async getCloudWorkspaceRepoPath(cloudWorkspaceId: string, repoId: string): Promise<string | undefined> {
+		const cloudWorkspaceRepoPathMap = await this.getCloudWorkspaceRepoPathMap();
+		return cloudWorkspaceRepoPathMap[cloudWorkspaceId]?.repoPaths[repoId];
 	}
 
 	async writeCloudWorkspaceDiskPathToMap(cloudWorkspaceId: string, repoId: string, repoLocalPath: string) {

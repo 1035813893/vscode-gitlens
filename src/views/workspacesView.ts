@@ -19,6 +19,7 @@ export class WorkspacesView extends ViewBase<WorkspacesViewNode, WorkspacesViewC
 
 	constructor(container: Container) {
 		super(container, 'gitlens.views.workspaces', 'Workspaces', 'workspaceView');
+		// TODO@ramint May want the view node to be in charge of resetting the workspaces
 		this._subscriptionDisposable = this.container.subscription.onDidChange(async event => {
 			if (
 				event.current.account == null ||

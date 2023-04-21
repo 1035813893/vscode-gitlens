@@ -41,7 +41,7 @@ export class WorkspaceMissingRepositoryNode extends ViewNode<WorkspacesView> {
 	getTreeItem(): TreeItem {
 		const description = 'missing';
 
-		// TODO: Make an icon for this
+		// TODO@ramint Use a better icon for this
 		const icon: ThemeIcon = new ThemeIcon('folder');
 
 		const item = new TreeItem(this.name, TreeItemCollapsibleState.None);
