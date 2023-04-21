@@ -16,8 +16,8 @@ import { ContextValues, ViewNode } from './viewNode';
 
 export class TagsNode extends ViewNode<TagsView | RepositoriesView | WorkspacesView> {
 	static key = ':tags';
-	static getId(repoPath: string): string {
-		return `${RepositoryNode.getId(repoPath)}${this.key}`;
+	static getId(repoPath: string, workspaceId?: string): string {
+		return `${RepositoryNode.getId(repoPath, workspaceId)}${this.key}`;
 	}
 
 	private _children: ViewNode[] | undefined;
@@ -27,12 +27,13 @@ export class TagsNode extends ViewNode<TagsView | RepositoriesView | WorkspacesV
 		view: TagsView | RepositoriesView | WorkspacesView,
 		parent: ViewNode,
 		public readonly repo: Repository,
+		private readonly options?: { workspaceId?: string },
 	) {
 		super(uri, view, parent);
 	}
 
 	override get id(): string {
-		return TagsNode.getId(this.repo.path);
+		return TagsNode.getId(this.repo.path, this.options?.workspaceId);
 	}
 
 	get repoPath(): string {
@@ -46,7 +47,10 @@ export class TagsNode extends ViewNode<TagsView | RepositoriesView | WorkspacesV
 
 			// TODO@eamodio handle paging
 			const tagNodes = tags.values.map(
-				t => new TagNode(GitUri.fromRepoPath(this.uri.repoPath!, t.ref), this.view, this, t),
+				t =>
+					new TagNode(GitUri.fromRepoPath(this.uri.repoPath!, t.ref), this.view, this, t, {
+						workspaceId: this.options?.workspaceId,
+					}),
 			);
 			if (this.view.config.branches.layout === ViewBranchesLayout.List) return tagNodes;
 
@@ -66,6 +70,8 @@ export class TagsNode extends ViewNode<TagsView | RepositoriesView | WorkspacesV
 				undefined,
 				hierarchy,
 				'tags',
+				undefined,
+				{ workspaceId: this.options?.workspaceId },
 			);
 			this._children = root.getChildren();
 		}

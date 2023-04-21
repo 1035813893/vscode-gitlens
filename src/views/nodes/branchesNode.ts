@@ -16,8 +16,8 @@ import { ContextValues, ViewNode } from './viewNode';
 
 export class BranchesNode extends ViewNode<BranchesView | RepositoriesView | WorkspacesView> {
 	static key = ':branches';
-	static getId(repoPath: string): string {
-		return `${RepositoryNode.getId(repoPath)}${this.key}`;
+	static getId(repoPath: string, workspaceId?: string): string {
+		return `${RepositoryNode.getId(repoPath, workspaceId)}${this.key}`;
 	}
 
 	private _children: ViewNode[] | undefined;
@@ -27,12 +27,13 @@ export class BranchesNode extends ViewNode<BranchesView | RepositoriesView | Wor
 		view: BranchesView | RepositoriesView | WorkspacesView,
 		parent: ViewNode,
 		public readonly repo: Repository,
+		private readonly options?: { workspaceId?: string },
 	) {
 		super(uri, view, parent);
 	}
 
 	override get id(): string {
-		return BranchesNode.getId(this.repo.path);
+		return BranchesNode.getId(this.repo.path, this.options?.workspaceId);
 	}
 
 	get repoPath(): string {
@@ -56,6 +57,7 @@ export class BranchesNode extends ViewNode<BranchesView | RepositoriesView | Wor
 							this.view instanceof RepositoriesView
 								? this.view.config.branches.showBranchComparison
 								: this.view.config.showBranchComparison,
+						workspaceId: this.options?.workspaceId,
 					}),
 			);
 			if (this.view.config.branches.layout === ViewBranchesLayout.List) return branchNodes;
@@ -80,6 +82,8 @@ export class BranchesNode extends ViewNode<BranchesView | RepositoriesView | Wor
 				undefined,
 				hierarchy,
 				'branches',
+				undefined,
+				{ workspaceId: this.options?.workspaceId },
 			);
 			this._children = root.getChildren();
 		}

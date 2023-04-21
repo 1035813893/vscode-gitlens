@@ -21,8 +21,8 @@ import { ContextValues, ViewNode } from './viewNode';
 
 export class UncommittedFilesNode extends ViewNode<RepositoriesView | WorktreesView | WorkspacesView> {
 	static key = ':uncommitted-files';
-	static getId(repoPath: string): string {
-		return `${RepositoryNode.getId(repoPath)}${this.key}`;
+	static getId(repoPath: string, workspaceId?: string): string {
+		return `${RepositoryNode.getId(repoPath, workspaceId)}${this.key}`;
 	}
 
 	readonly repoPath: string;
@@ -39,13 +39,16 @@ export class UncommittedFilesNode extends ViewNode<RepositoriesView | WorktreesV
 					readonly upstream?: string;
 			  },
 		public readonly range: string | undefined,
+		private readonly options?: {
+			workspaceId?: string;
+		},
 	) {
 		super(GitUri.fromRepoPath(status.repoPath), view, parent);
 		this.repoPath = status.repoPath;
 	}
 
 	override get id(): string {
-		return UncommittedFilesNode.getId(this.repoPath);
+		return UncommittedFilesNode.getId(this.repoPath, this.options?.workspaceId);
 	}
 
 	getChildren(): ViewNode[] {

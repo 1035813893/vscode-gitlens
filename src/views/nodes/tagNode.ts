@@ -26,8 +26,8 @@ export class TagNode
 	implements PageableViewNode
 {
 	static key = ':tag';
-	static getId(repoPath: string, name: string): string {
-		return `${RepositoryNode.getId(repoPath)}${this.key}(${name})`;
+	static getId(repoPath: string, name: string, workspaceId?: string): string {
+		return `${RepositoryNode.getId(repoPath, workspaceId)}${this.key}(${name})`;
 	}
 
 	constructor(
@@ -35,6 +35,9 @@ export class TagNode
 		view: TagsView | RepositoriesView | WorkspacesView,
 		parent: ViewNode,
 		public readonly tag: GitTag,
+		private readonly options?: {
+			workspaceId?: string;
+		},
 	) {
 		super(uri, view, parent);
 	}
@@ -44,7 +47,7 @@ export class TagNode
 	}
 
 	override get id(): string {
-		return TagNode.getId(this.tag.repoPath, this.tag.name);
+		return TagNode.getId(this.tag.repoPath, this.tag.name, this.options?.workspaceId);
 	}
 
 	get label(): string {

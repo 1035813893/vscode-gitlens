@@ -30,8 +30,9 @@ export class ContributorNode
 		name: string | undefined,
 		email: string | undefined,
 		username: string | undefined,
+		workspaceId?: string,
 	): string {
-		return `${RepositoryNode.getId(repoPath)}${this.key}(${name}|${email}|${username})`;
+		return `${RepositoryNode.getId(repoPath, workspaceId)}${this.key}(${name}|${email}|${username})`;
 	}
 
 	constructor(
@@ -43,6 +44,7 @@ export class ContributorNode
 			all?: boolean;
 			ref?: string;
 			presence: Map<string, ContactPresence> | undefined;
+			workspaceId?: string;
 		},
 	) {
 		super(uri, view, parent);
@@ -58,6 +60,7 @@ export class ContributorNode
 			this.contributor.name,
 			this.contributor.email,
 			this.contributor.username,
+			this._options?.workspaceId,
 		);
 	}
 

@@ -21,8 +21,8 @@ import { ContextValues, ViewNode } from './viewNode';
 
 export class StatusFilesNode extends ViewNode<RepositoriesView | WorkspacesView | WorktreesView> {
 	static key = ':status-files';
-	static getId(repoPath: string): string {
-		return `${RepositoryNode.getId(repoPath)}${this.key}`;
+	static getId(repoPath: string, workspaceId?: string): string {
+		return `${RepositoryNode.getId(repoPath, workspaceId)}${this.key}`;
 	}
 
 	readonly repoPath: string;
@@ -39,13 +39,16 @@ export class StatusFilesNode extends ViewNode<RepositoriesView | WorkspacesView 
 					readonly upstream?: string;
 			  },
 		public readonly range: string | undefined,
+		private readonly options?: {
+			workspaceId?: string;
+		},
 	) {
 		super(GitUri.fromRepoPath(status.repoPath), view, parent);
 		this.repoPath = status.repoPath;
 	}
 
 	override get id(): string {
-		return StatusFilesNode.getId(this.repoPath);
+		return StatusFilesNode.getId(this.repoPath, this.options?.workspaceId);
 	}
 
 	async getChildren(): Promise<ViewNode[]> {

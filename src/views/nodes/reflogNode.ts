@@ -14,8 +14,8 @@ import { ContextValues, ViewNode } from './viewNode';
 
 export class ReflogNode extends ViewNode<RepositoriesView | WorkspacesView> implements PageableViewNode {
 	static key = ':reflog';
-	static getId(repoPath: string): string {
-		return `${RepositoryNode.getId(repoPath)}${this.key}`;
+	static getId(repoPath: string, workspaceId?: string): string {
+		return `${RepositoryNode.getId(repoPath, workspaceId)}${this.key}`;
 	}
 
 	private _children: ViewNode[] | undefined;
@@ -25,12 +25,15 @@ export class ReflogNode extends ViewNode<RepositoriesView | WorkspacesView> impl
 		view: RepositoriesView | WorkspacesView,
 		parent: ViewNode,
 		public readonly repo: Repository,
+		private readonly options?: {
+			workspaceId?: string;
+		},
 	) {
 		super(uri, view, parent);
 	}
 
 	override get id(): string {
-		return ReflogNode.getId(this.repo.path);
+		return ReflogNode.getId(this.repo.path, this.options?.workspaceId);
 	}
 
 	async getChildren(): Promise<ViewNode[]> {

@@ -15,8 +15,8 @@ import { WorktreeNode } from './worktreeNode';
 
 export class WorktreesNode extends ViewNode<WorktreesView | RepositoriesView | WorkspacesView> {
 	static key = ':worktrees';
-	static getId(repoPath: string): string {
-		return `${RepositoryNode.getId(repoPath)}${this.key}`;
+	static getId(repoPath: string, workspaceId?: string): string {
+		return `${RepositoryNode.getId(repoPath, workspaceId)}${this.key}`;
 	}
 
 	private _children: WorktreeNode[] | undefined;
@@ -26,12 +26,15 @@ export class WorktreesNode extends ViewNode<WorktreesView | RepositoriesView | W
 		view: WorktreesView | RepositoriesView | WorkspacesView,
 		parent: ViewNode,
 		public readonly repo: Repository,
+		private readonly options?: {
+			workspaceId?: string;
+		},
 	) {
 		super(uri, view, parent);
 	}
 
 	override get id(): string {
-		return WorktreesNode.getId(this.repo.path);
+		return WorktreesNode.getId(this.repo.path, this.options?.workspaceId);
 	}
 
 	get repoPath(): string {
@@ -46,7 +49,9 @@ export class WorktreesNode extends ViewNode<WorktreesView | RepositoriesView | W
 			const worktrees = await this.repo.getWorktrees();
 			if (worktrees.length === 0) return [new MessageNode(this.view, this, 'No worktrees could be found.')];
 
-			this._children = worktrees.map(c => new WorktreeNode(this.uri, this.view, this, c));
+			this._children = worktrees.map(
+				c => new WorktreeNode(this.uri, this.view, this, c, { workspaceId: this.options?.workspaceId }),
+			);
 		}
 
 		return this._children;

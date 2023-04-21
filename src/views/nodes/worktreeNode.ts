@@ -34,8 +34,8 @@ type State = {
 
 export class WorktreeNode extends ViewNode<WorktreesView | RepositoriesView | WorkspacesView, State> {
 	static key = ':worktree';
-	static getId(repoPath: string, uri: Uri): string {
-		return `${RepositoryNode.getId(repoPath)}${this.key}(${uri.path})`;
+	static getId(repoPath: string, uri: Uri, workspaceId?: string): string {
+		return `${RepositoryNode.getId(repoPath, workspaceId)}${this.key}(${uri.path})`;
 	}
 
 	private _branch: GitBranch | undefined;
@@ -45,6 +45,9 @@ export class WorktreeNode extends ViewNode<WorktreesView | RepositoriesView | Wo
 		view: WorktreesView | RepositoriesView | WorkspacesView,
 		parent: ViewNode,
 		public readonly worktree: GitWorktree,
+		private readonly options?: {
+			workspaceId?: string;
+		},
 	) {
 		super(uri, view, parent);
 	}
@@ -54,7 +57,7 @@ export class WorktreeNode extends ViewNode<WorktreesView | RepositoriesView | Wo
 	}
 
 	override get id(): string {
-		return WorktreeNode.getId(this.worktree.repoPath, this.worktree.uri);
+		return WorktreeNode.getId(this.worktree.repoPath, this.worktree.uri, this.options?.workspaceId);
 	}
 
 	get repoPath(): string {
@@ -144,6 +147,7 @@ export class WorktreeNode extends ViewNode<WorktreesView | RepositoriesView | Wo
 						branch,
 						this.view.config.showBranchComparison,
 						this.splatted,
+						{ workspaceId: this.options?.workspaceId },
 					),
 				);
 			}
@@ -180,7 +184,11 @@ export class WorktreeNode extends ViewNode<WorktreesView | RepositoriesView | Wo
 			const status = getSettledValue(statusResult);
 
 			if (status?.hasChanges) {
-				children.unshift(new UncommittedFilesNode(this.view, this, status, undefined));
+				children.unshift(
+					new UncommittedFilesNode(this.view, this, status, undefined, {
+						workspaceId: this.options?.workspaceId,
+					}),
+				);
 			}
 
 			this._children = children;
