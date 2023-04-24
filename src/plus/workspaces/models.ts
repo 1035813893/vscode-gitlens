@@ -7,18 +7,21 @@ export enum WorkspaceType {
 export class GKCloudWorkspace {
 	private readonly _type: WorkspaceType = WorkspaceType.Cloud;
 	private readonly _id: string;
+	private readonly _organizationId: string | undefined;
 	private readonly _name: string;
 	private readonly _provider: CloudWorkspaceProviderType;
 	private _repositories: CloudWorkspaceRepositoryDescriptor[] | undefined;
 	constructor(
 		id: string,
 		name: string,
+		organizationId: string | undefined,
 		provider: CloudWorkspaceProviderType,
 		private readonly getReposFn: (workspaceId: string) => Promise<CloudWorkspaceRepositoryDescriptor[] | undefined>,
 		repositories?: CloudWorkspaceRepositoryDescriptor[],
 	) {
 		this._id = id;
 		this._name = name;
+		this._organizationId = organizationId;
 		this._provider = provider;
 		this._repositories = repositories;
 	}
@@ -35,12 +38,20 @@ export class GKCloudWorkspace {
 		return this._name;
 	}
 
+	get organization_id(): string | undefined {
+		return this._organizationId;
+	}
+
 	get provider(): CloudWorkspaceProviderType {
 		return this._provider;
 	}
 
 	get repositories(): CloudWorkspaceRepositoryDescriptor[] | undefined {
 		return this._repositories;
+	}
+
+	isShared(): boolean {
+		return this._organizationId != null;
 	}
 
 	getRepository(name: string): CloudWorkspaceRepositoryDescriptor | undefined {
@@ -456,6 +467,10 @@ export class GKLocalWorkspace {
 
 	get repositories(): LocalWorkspaceRepositoryDescriptor[] | undefined {
 		return this._repositories;
+	}
+
+	isShared(): boolean {
+		return false;
 	}
 
 	getRepository(name: string): LocalWorkspaceRepositoryDescriptor | undefined {

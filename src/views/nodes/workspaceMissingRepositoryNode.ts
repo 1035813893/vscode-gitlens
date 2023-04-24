@@ -47,6 +47,7 @@ export class WorkspaceMissingRepositoryNode extends ViewNode<WorkspacesView> {
 		const item = new TreeItem(this.name, TreeItemCollapsibleState.None);
 		item.id = this.id;
 		item.description = description;
+		item.tooltip = `${this.name} (missing)`;
 		item.contextValue = ContextValues.WorkspaceMissingRepository;
 		item.iconPath = icon;
 		return item;

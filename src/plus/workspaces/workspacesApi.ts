@@ -69,6 +69,9 @@ export class WorkspacesApi {
                                 id
 								description
                                 name
+								organization {
+									id
+								}
                                 provider
                                 provider_data {
                                     repositories ${repoQueryParams} {
@@ -138,6 +141,9 @@ export class WorkspacesApi {
                                 id
 								description
                                 name
+								organization {
+									id
+								}
                                 provider
                             }
                         }
@@ -271,6 +277,9 @@ export class WorkspacesApi {
 							id,
 							name,
 							description,
+							organization {
+								id
+							}
 							provider
 						}
                     }

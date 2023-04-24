@@ -55,6 +55,7 @@ export class WorkspacesService implements Disposable {
 					new GKCloudWorkspace(
 						workspace.id,
 						workspace.name,
+						workspace.organization?.id,
 						workspace.provider as CloudWorkspaceProviderType,
 						this._getCloudWorkspaceRepos,
 						repositories,
@@ -384,6 +385,7 @@ export class WorkspacesService implements Disposable {
 				new GKCloudWorkspace(
 					createdProjectData.id,
 					createdProjectData.name,
+					createdProjectData.organization?.id,
 					createdProjectData.provider as CloudWorkspaceProviderType,
 					this._getCloudWorkspaceRepos,
 					[],

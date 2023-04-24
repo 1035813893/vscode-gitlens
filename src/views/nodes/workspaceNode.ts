@@ -6,11 +6,10 @@ import type { Repository } from '../../git/models/repository';
 import type { GitHubAuthorityMetadata } from '../../plus/remotehub';
 import type {
 	CloudWorkspaceRepositoryDescriptor,
-	GKCloudWorkspace,
 	GKLocalWorkspace,
 	LocalWorkspaceRepositoryDescriptor,
 } from '../../plus/workspaces/models';
-import { WorkspaceType } from '../../plus/workspaces/models';
+import { GKCloudWorkspace, WorkspaceType } from '../../plus/workspaces/models';
 import type { WorkspacesView } from '../workspacesView';
 import { MessageNode } from './common';
 import { RepositoryNode } from './repositoryNode';
@@ -173,7 +172,15 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 		item.description = description;
 		item.contextValue = contextValue;
 		item.iconPath = icon;
-		item.tooltip = undefined;
+		item.tooltip = `${this.name}\n${
+			this._type === WorkspaceType.Cloud
+				? `Cloud Workspace ${this._workspace.isShared() ? '(Shared)' : ''}`
+				: 'Local Workspace'
+		}${
+			this._workspace instanceof GKCloudWorkspace && this._workspace.provider != null
+				? `\nProvider: ${this._workspace.provider}`
+				: ''
+		}`;
 		item.resourceUri = undefined;
 		return item;
 	}
