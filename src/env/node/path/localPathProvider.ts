@@ -7,6 +7,7 @@ import type { Container } from '../../../container';
 import type { LocalRepoDataMap } from '../../../path/models';
 import { localRepoMappingFilePath } from '../../../path/models';
 import type { PathProvider } from '../../../path/pathProvider';
+import { Logger } from '../../../system/logger';
 import { acquireSharedFolderWriteLock, releaseSharedFolderWriteLock } from './utils';
 
 export class LocalPathProvider implements PathProvider, Disposable {
@@ -59,7 +60,9 @@ export class LocalPathProvider implements PathProvider, Disposable {
 		try {
 			const data = await workspace.fs.readFile(Uri.file(localFilePath));
 			this._localRepoDataMap = (JSON.parse(data.toString()) ?? {}) as LocalRepoDataMap;
-		} catch (error) {}
+		} catch (error) {
+			Logger.error(error, 'loadLocalRepoDataMap');
+		}
 	}
 
 	async writeLocalRepoPath(
@@ -95,7 +98,9 @@ export class LocalPathProvider implements PathProvider, Disposable {
 		const outputData = new Uint8Array(Buffer.from(JSON.stringify(this._localRepoDataMap)));
 		try {
 			await workspace.fs.writeFile(Uri.file(localFilePath), outputData);
-		} catch (error) {}
+		} catch (error) {
+			Logger.error(error, 'writeLocalRepoPath');
+		}
 		await releaseSharedFolderWriteLock();
 	}
 }

@@ -2,6 +2,7 @@ import os from 'os';
 import path from 'path';
 import { Uri, workspace } from 'vscode';
 import { localGKSharedDataFolder } from '../../../constants';
+import { Logger } from '../../../system/logger';
 
 export async function acquireSharedFolderWriteLock(): Promise<boolean> {
 	const lockFilePath = path.join(os.homedir(), localGKSharedDataFolder, 'lockfile');
@@ -37,15 +38,21 @@ export async function acquireSharedFolderWriteLock(): Promise<boolean> {
 		// write the lockfile to the shared data folder
 		await workspace.fs.writeFile(Uri.file(lockFilePath), lockFileData);
 	} catch (error) {
+		Logger.error(error, 'acquireSharedFolderWriteLock');
 		return false;
 	}
 
 	return true;
 }
 
-export async function releaseSharedFolderWriteLock(): Promise<void> {
+export async function releaseSharedFolderWriteLock(): Promise<boolean> {
 	const lockFilePath = path.join(os.homedir(), localGKSharedDataFolder, 'lockfile');
 	try {
 		await workspace.fs.delete(Uri.file(lockFilePath));
-	} catch (error) {}
+	} catch (error) {
+		Logger.error(error, 'releaseSharedFolderWriteLock');
+		return false;
+	}
+
+	return true;
 }

@@ -383,7 +383,7 @@ export class WorkspacesApi {
 		);
 
 		if (!rsp.ok) {
-			Logger.error(undefined, `Adding repositories to workspace: (${rsp.status}) ${rsp.statusText}`);
+			Logger.error(undefined, `Adding repositories to workspace failed: (${rsp.status}) ${rsp.statusText}`);
 			throw new Error(rsp.statusText);
 		}
 
@@ -430,7 +430,7 @@ export class WorkspacesApi {
 		);
 
 		if (!rsp.ok) {
-			Logger.error(undefined, `Removing repositories from workspace: (${rsp.status}) ${rsp.statusText}`);
+			Logger.error(undefined, `Removing repositories from workspace failed: (${rsp.status}) ${rsp.statusText}`);
 			throw new Error(rsp.statusText);
 		}
 

@@ -10,12 +10,13 @@ import {
 	localWorkspaceDataLegacyFilePath,
 } from '../../../plus/workspaces/models';
 import type { WorkspacesPathProvider } from '../../../plus/workspaces/workspacesPathProvider';
+import { Logger } from '../../../system/logger';
 import { acquireSharedFolderWriteLock, releaseSharedFolderWriteLock } from './utils';
 
 export class WorkspacesLocalPathProvider implements WorkspacesPathProvider {
 	private _cloudWorkspaceRepoPathMap: CloudWorkspacesPathMap | undefined = undefined;
 
-	private async ensureCloudWorkspaceRepoPathMap() {
+	private async ensureCloudWorkspaceRepoPathMap(): Promise<void> {
 		if (this._cloudWorkspaceRepoPathMap == null) {
 			await this.loadCloudWorkspaceRepoPathMap();
 		}
@@ -26,12 +27,14 @@ export class WorkspacesLocalPathProvider implements WorkspacesPathProvider {
 		return this._cloudWorkspaceRepoPathMap ?? {};
 	}
 
-	private async loadCloudWorkspaceRepoPathMap() {
+	private async loadCloudWorkspaceRepoPathMap(): Promise<void> {
 		const localFilePath = path.join(os.homedir(), localGKSharedDataFolder, cloudWorkspaceDataFilePath);
 		try {
 			const data = await workspace.fs.readFile(Uri.file(localFilePath));
 			this._cloudWorkspaceRepoPathMap = (JSON.parse(data.toString())?.workspaces ?? {}) as CloudWorkspacesPathMap;
-		} catch (error) {}
+		} catch (error) {
+			Logger.error(error, 'loadCloudWorkspaceRepoPathMap');
+		}
 	}
 
 	async getCloudWorkspaceRepoPath(cloudWorkspaceId: string, repoId: string): Promise<string | undefined> {
@@ -64,7 +67,9 @@ export class WorkspacesLocalPathProvider implements WorkspacesPathProvider {
 		const outputData = new Uint8Array(Buffer.from(JSON.stringify({ workspaces: this._cloudWorkspaceRepoPathMap })));
 		try {
 			await workspace.fs.writeFile(Uri.file(localFilePath), outputData);
-		} catch (error) {}
+		} catch (error) {
+			Logger.error(error, 'writeCloudWorkspaceDiskPathToMap');
+		}
 		await releaseSharedFolderWriteLock();
 	}
 
@@ -88,7 +93,9 @@ export class WorkspacesLocalPathProvider implements WorkspacesPathProvider {
 				);
 				data = await workspace.fs.readFile(Uri.file(localFilePath));
 				return JSON.parse(data.toString()) as LocalWorkspaceFileData;
-			} catch (error) {}
+			} catch (error) {
+				Logger.error(error, 'getLocalWorkspaceData');
+			}
 		}
 
 		return { workspaces: {} };
