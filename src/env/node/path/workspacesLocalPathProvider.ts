@@ -1,16 +1,18 @@
-// TODO@ramint: This will break on vscode-web. Need to split it out somehow.
-// eslint-disable-next-line no-restricted-imports
 import os from 'os';
-// eslint-disable-next-line no-restricted-imports
 import path from 'path';
 import { Uri, workspace } from 'vscode';
 import { getPlatform } from '@env/platform';
-import { localGKSharedDataFolder, localGKSharedDataLegacyFolder } from '../../constants';
-import { acquireSharedFolderWriteLock, releaseSharedFolderWriteLock } from '../../git/localPathProvider';
-import type { CloudWorkspacesPathMap, LocalWorkspaceFileData } from './models';
-import { cloudWorkspaceDataFilePath, localWorkspaceDataFilePath, localWorkspaceDataLegacyFilePath } from './models';
+import { localGKSharedDataFolder, localGKSharedDataLegacyFolder } from '../../../constants';
+import type { CloudWorkspacesPathMap, LocalWorkspaceFileData } from '../../../plus/workspaces/models';
+import {
+	cloudWorkspaceDataFilePath,
+	localWorkspaceDataFilePath,
+	localWorkspaceDataLegacyFilePath,
+} from '../../../plus/workspaces/models';
+import type { WorkspacesPathProvider } from '../../../plus/workspaces/workspacesPathProvider';
+import { acquireSharedFolderWriteLock, releaseSharedFolderWriteLock } from './utils';
 
-export class WorkspacesLocalProvider {
+export class WorkspacesLocalPathProvider implements WorkspacesPathProvider {
 	private _cloudWorkspaceRepoPathMap: CloudWorkspacesPathMap | undefined = undefined;
 
 	private async ensureCloudWorkspaceRepoPathMap() {
@@ -37,9 +39,17 @@ export class WorkspacesLocalProvider {
 		return cloudWorkspaceRepoPathMap[cloudWorkspaceId]?.repoPaths[repoId];
 	}
 
-	async writeCloudWorkspaceDiskPathToMap(cloudWorkspaceId: string, repoId: string, repoLocalPath: string) {
-		await acquireSharedFolderWriteLock();
+	async writeCloudWorkspaceDiskPathToMap(
+		cloudWorkspaceId: string,
+		repoId: string,
+		repoLocalPath: string,
+	): Promise<void> {
+		if (!(await acquireSharedFolderWriteLock())) {
+			return;
+		}
+
 		await this.loadCloudWorkspaceRepoPathMap();
+
 		if (this._cloudWorkspaceRepoPathMap == null) {
 			this._cloudWorkspaceRepoPathMap = {};
 		}
@@ -52,7 +62,9 @@ export class WorkspacesLocalProvider {
 
 		const localFilePath = path.join(os.homedir(), localGKSharedDataFolder, cloudWorkspaceDataFilePath);
 		const outputData = new Uint8Array(Buffer.from(JSON.stringify({ workspaces: this._cloudWorkspaceRepoPathMap })));
-		await workspace.fs.writeFile(Uri.file(localFilePath), outputData);
+		try {
+			await workspace.fs.writeFile(Uri.file(localFilePath), outputData);
+		} catch (error) {}
 		await releaseSharedFolderWriteLock();
 	}
 

@@ -1,6 +1,6 @@
 import type { ConfigurationChangeEvent, Disposable, Event, ExtensionContext } from 'vscode';
 import { EventEmitter, ExtensionMode } from 'vscode';
-import { getSupportedGitProviders } from '@env/providers';
+import { getSupportedGitProviders, getSupportedPathProvider } from '@env/providers';
 import { AIProviderService } from './ai/aiProviderService';
 import { Autolinks } from './annotations/autolinks';
 import { FileAnnotationController } from './annotations/fileAnnotationController';
@@ -15,11 +15,11 @@ import { Commands, extensionPrefix } from './constants';
 import { EventBus } from './eventBus';
 import { GitFileSystemProvider } from './git/fsProvider';
 import { GitProviderService } from './git/gitProviderService';
-import { LocalPathProvider } from './git/localPathProvider';
 import { GitHubAuthenticationProvider } from './git/remotes/github';
 import { GitLabAuthenticationProvider } from './git/remotes/gitlab';
 import { RichRemoteProviderService } from './git/remotes/remoteProviderService';
 import { LineHoverController } from './hovers/lineHoverController';
+import type { PathProvider } from './path/pathProvider';
 import { IntegrationAuthenticationService } from './plus/integrationAuthentication';
 import { SubscriptionAuthenticationProvider } from './plus/subscription/authenticationProvider';
 import { ServerConnection } from './plus/subscription/serverConnection';
@@ -200,7 +200,7 @@ export class Container {
 
 		this._disposables.push((this._git = new GitProviderService(this)));
 		this._disposables.push(new GitFileSystemProvider(this));
-		this._disposables.push((this._localPath = new LocalPathProvider(this)));
+		this._disposables.push((this._path = getSupportedPathProvider(this)));
 
 		this._disposables.push((this._uri = new UriService(this)));
 
@@ -534,9 +534,9 @@ export class Container {
 		return this._lineTracker;
 	}
 
-	private readonly _localPath: LocalPathProvider;
+	private readonly _path: PathProvider;
 	get localPath() {
-		return this._localPath;
+		return this._path;
 	}
 
 	private readonly _prerelease;

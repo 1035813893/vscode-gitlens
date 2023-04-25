@@ -1,16 +1,15 @@
-// TODO@ramint: This will break on vscode-web. Need to split it out somehow.
-// eslint-disable-next-line no-restricted-imports
 import os from 'os';
-// eslint-disable-next-line no-restricted-imports
 import path from 'path';
 import type { Disposable } from 'vscode';
 import { Uri, workspace } from 'vscode';
-import { localGKSharedDataFolder } from '../constants';
-import type { Container } from '../container';
-import type { LocalRepoDataMap } from './models/localPath';
-import { localRepoMappingFilePath } from './models/localPath';
+import { localGKSharedDataFolder } from '../../../constants';
+import type { Container } from '../../../container';
+import type { LocalRepoDataMap } from '../../../path/models';
+import { localRepoMappingFilePath } from '../../../path/models';
+import type { PathProvider } from '../../../path/pathProvider';
+import { acquireSharedFolderWriteLock, releaseSharedFolderWriteLock } from './utils';
 
-export class LocalPathProvider implements Disposable {
+export class LocalPathProvider implements PathProvider, Disposable {
 	constructor(private readonly container: Container) {}
 
 	dispose() {}
@@ -78,7 +77,10 @@ export class LocalPathProvider implements Disposable {
 	}
 
 	private async _writeLocalRepoPath(key: string, localPath: string): Promise<void> {
-		await acquireSharedFolderWriteLock();
+		if (!(await acquireSharedFolderWriteLock())) {
+			return;
+		}
+
 		await this.loadLocalRepoDataMap();
 		if (this._localRepoDataMap == null) {
 			this._localRepoDataMap = {};
@@ -91,54 +93,9 @@ export class LocalPathProvider implements Disposable {
 		}
 		const localFilePath = path.join(os.homedir(), localGKSharedDataFolder, localRepoMappingFilePath);
 		const outputData = new Uint8Array(Buffer.from(JSON.stringify(this._localRepoDataMap)));
-		await workspace.fs.writeFile(Uri.file(localFilePath), outputData);
+		try {
+			await workspace.fs.writeFile(Uri.file(localFilePath), outputData);
+		} catch (error) {}
 		await releaseSharedFolderWriteLock();
 	}
-}
-
-export async function acquireSharedFolderWriteLock(): Promise<boolean> {
-	const lockFilePath = path.join(os.homedir(), localGKSharedDataFolder, 'lockfile');
-	let existingLockFileData;
-	while (true) {
-		try {
-			existingLockFileData = await workspace.fs.readFile(Uri.file(lockFilePath));
-		} catch (error) {
-			// File does not exist, so we can safely create it
-			break;
-		}
-
-		const existingLockFileTimestamp = parseInt(existingLockFileData.toString());
-		if (isNaN(existingLockFileTimestamp)) {
-			// File exists, but the timestamp is invalid, so we can safely remove it
-			break;
-		}
-
-		const currentTime = new Date().getTime();
-		if (currentTime - existingLockFileTimestamp > 30000) {
-			// File exists, but the timestamp is older than 30 seconds, so we can safely remove it
-			break;
-		}
-
-		// File exists, and the timestamp is less than 30 seconds old, so we need to wait for it to be removed
-		await new Promise(resolve => setTimeout(resolve, 100));
-	}
-
-	// Create the lockfile with the current timestamp
-	const lockFileData = new Uint8Array(Buffer.from(new Date().getTime().toString()));
-
-	try {
-		// write the lockfile to the shared data folder
-		await workspace.fs.writeFile(Uri.file(lockFilePath), lockFileData);
-	} catch (error) {
-		return false;
-	}
-
-	return true;
-}
-
-export async function releaseSharedFolderWriteLock(): Promise<void> {
-	const lockFilePath = path.join(os.homedir(), localGKSharedDataFolder, 'lockfile');
-	try {
-		await workspace.fs.delete(Uri.file(lockFilePath));
-	} catch (error) {}
 }
