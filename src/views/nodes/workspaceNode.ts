@@ -79,7 +79,7 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 					// repo name in this case is the last part of the path after splitting from the path separator
 					repoName = (repository as LocalWorkspaceRepositoryDescriptor).name;
 					for (const currentRepository of currentRepositories) {
-						if (currentRepository.path.replace('\\', '/') === repoLocalPath.replace('\\', '/')) {
+						if (currentRepository.path.replaceAll('\\', '/') === repoLocalPath.replaceAll('\\', '/')) {
 							repo = currentRepository;
 						}
 					}
@@ -113,7 +113,7 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 					for (const currentRepository of currentRepositories) {
 						if (
 							repoLocalPath != null &&
-							currentRepository.path.replace('\\', '/') === repoLocalPath.replace('\\', '/')
+							currentRepository.path.replaceAll('\\', '/') === repoLocalPath.replaceAll('\\', '/')
 						) {
 							repo = currentRepository;
 						}
