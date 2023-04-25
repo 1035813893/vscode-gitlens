@@ -13228,32 +13228,7 @@
 			},
 			{
 				"view": "gitlens.views.workspaces",
-				"contents": "Workspaces allow you and your organizations to store and sync collections of repositories across your devices and across the full line of GitKraken products.\n\nYou can create multiple workspaces, each of which can contain multiple repositories. Cloud workspaces are included with [✨ GitLens+](command:gitlens.plus.learn \"Learn more about GitLens+ features\")."
-			},
-			{
-				"view": "gitlens.views.workspaces",
-				"contents": "[Create Workspace...](command:gitlens.views.workspaces.create)",
-				"when": "!gitlens:plus:required"
-			},
-			{
-				"view": "gitlens.views.workspaces",
-				"contents": "Please verify your email\n\nTo use Workspaces, please verify your email address.\n\n[Resend verification email](command:gitlens.plus.resendVerification)\n\n[Refresh verification status](command:gitlens.plus.validate)",
-				"when": "gitlens:plus:state == -1"
-			},
-			{
-				"view": "gitlens.views.workspaces",
-				"contents": "[Try worktrees on private repos](command:gitlens.plus.startPreviewTrial)\n\nTo use Workspaces, start a free trial of GitLens Pro, without an account, or [sign in](command:gitlens.plus.loginOrSignUp).",
-				"when": "gitlens:plus:required && gitlens:plus:state == 0"
-			},
-			{
-				"view": "gitlens.views.workspaces",
-				"contents": "[Extend Pro Trial](command:gitlens.plus.loginOrSignUp)\n\nYour free 3-day GitLens Pro trial has ended, extend your trial to get an additional 7-days of Workspaces, a [GitLens+ feature](command:gitlens.plus.learn).",
-				"when": "gitlens:plus:required && gitlens:plus:state == 2"
-			},
-			{
-				"view": "gitlens.views.workspaces",
-				"contents": "[Upgrade to Pro](command:gitlens.plus.purchase)\n\nYour GitLens Pro trial has ended, please upgrade to GitLens Pro to continue to use Workspaces.",
-				"when": "gitlens:plus:required && gitlens:plus:state == 4"
+				"contents": "Workspaces allow you and your organizations to store and sync collections of repositories across your devices and across the full line of GitKraken products.\n\nYou can create multiple workspaces, each of which can contain multiple repositories. Cloud workspaces require an account, and shared cloud workspaces are included with a [✨ GitLens+](command:gitlens.plus.learn \"Learn more about GitLens+ features\") Pro account."
 			},
 			{
 				"view": "gitlens.views.worktrees",

@@ -1,7 +1,6 @@
 import { TreeItem, TreeItemCollapsibleState } from 'vscode';
-import type { GKLocalWorkspace } from '../../plus/workspaces/models';
-import { GKCloudWorkspace } from '../../plus/workspaces/models';
 import type { WorkspacesView } from '../workspacesView';
+import { MessageNode } from './common';
 import { ViewNode } from './viewNode';
 import { WorkspaceNode } from './workspaceNode';
 
@@ -11,7 +10,7 @@ export class WorkspacesViewNode extends ViewNode<WorkspacesView> {
 		return `gitlens${this.key}`;
 	}
 
-	private _children: WorkspaceNode[] | undefined;
+	private _children: (WorkspaceNode | MessageNode)[] | undefined;
 
 	override get id(): string {
 		return WorkspacesViewNode.getId();
@@ -19,17 +18,35 @@ export class WorkspacesViewNode extends ViewNode<WorkspacesView> {
 
 	async getChildren(): Promise<ViewNode[]> {
 		if (this._children == null) {
-			const children: WorkspaceNode[] = [];
-
-			const workspaces: (GKCloudWorkspace | GKLocalWorkspace)[] =
+			const children: (WorkspaceNode | MessageNode)[] = [];
+			const { cloudWorkspaces, cloudWorkspaceInfo, localWorkspaces, localWorkspaceInfo } =
 				await this.view.container.workspaces.getWorkspaces();
-			if (workspaces?.length) {
-				for (const workspace of workspaces) {
-					if (workspace instanceof GKCloudWorkspace && workspace.repositories == null) {
-						await workspace.loadRepositories();
-					}
-					children.push(new WorkspaceNode(this.uri, this.view, this, workspace));
+			for (const workspace of cloudWorkspaces) {
+				if (workspace.repositories == null) {
+					await workspace.loadRepositories();
 				}
+
+				children.push(new WorkspaceNode(this.uri, this.view, this, workspace));
+			}
+
+			for (const workspace of localWorkspaces) {
+				children.push(new WorkspaceNode(this.uri, this.view, this, workspace));
+			}
+
+			if (cloudWorkspaceInfo != null) {
+				children.push(new MessageNode(this.view, this, cloudWorkspaceInfo));
+			}
+
+			if (cloudWorkspaces.length === 0 && cloudWorkspaceInfo == null) {
+				children.push(new MessageNode(this.view, this, 'No cloud workspaces found.'));
+			}
+
+			if (localWorkspaceInfo != null) {
+				children.push(new MessageNode(this.view, this, localWorkspaceInfo));
+			}
+
+			if (localWorkspaces.length === 0 && localWorkspaceInfo == null) {
+				children.push(new MessageNode(this.view, this, 'No local workspaces found.'));
 			}
 
 			this._children = children;

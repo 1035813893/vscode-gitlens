@@ -24,12 +24,12 @@ export class WorkspacesView extends ViewBase<WorkspacesViewNode, WorkspacesViewC
 			if (
 				event.current.account == null ||
 				event.current.account.id !== event.previous?.account?.id ||
-				event.current.state !== event.previous.state
+				event.current.state !== event.previous?.state
 			) {
-				this.container.workspaces.resetWorkspaces();
-				if (await ensurePlusFeaturesEnabled()) {
-					await this.container.workspaces.getWorkspaces();
-				}
+				await this.container.workspaces.getWorkspaces({
+					resetCloudWorkspaces: true,
+					resetLocalWorkspaces: true,
+				});
 			}
 
 			void this.ensureRoot().triggerChange(true);
