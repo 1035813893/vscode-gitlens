@@ -95,7 +95,7 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 					repoOwner = (repository as CloudWorkspaceRepositoryDescriptor).provider_organization_id;
 
 					if (repoLocalPath == null) {
-						const repoLocalPaths = await this.view.container.localPath.getLocalRepoPaths({
+						const repoLocalPaths = await this.view.container.path.getLocalRepoPaths({
 							remoteUrl: repoRemoteUrl,
 							repoInfo: {
 								repoName: repoName,

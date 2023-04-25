@@ -173,13 +173,13 @@ export class WorkspacesService implements Disposable {
 		}
 
 		for (const remoteUrl of remoteUrls) {
-			await this.container.localPath.writeLocalRepoPath({ remoteUrl: remoteUrl }, repoLocatedUri.path);
+			await this.container.path.writeLocalRepoPath({ remoteUrl: remoteUrl }, repoLocatedUri.path);
 		}
 
 		if (workspaceId != null) {
 			const workspaceRepo = (await this.getCloudWorkspace(workspaceId))?.getRepository(repo.name);
 			if (workspaceRepo != null) {
-				await this.container.localPath.writeLocalRepoPath(
+				await this.container.path.writeLocalRepoPath(
 					{
 						remoteUrl: workspaceRepo.url,
 						repoInfo: {
@@ -442,7 +442,7 @@ export class WorkspacesService implements Disposable {
 						}
 
 						for (const remoteUrl of remoteUrls) {
-							await this.container.localPath.writeLocalRepoPath(
+							await this.container.path.writeLocalRepoPath(
 								{ remoteUrl: remoteUrl },
 								repo.uri.fsPath,
 							);
@@ -540,7 +540,7 @@ export class WorkspacesService implements Disposable {
 			}
 
 			for (const remoteUrl of remoteUrls) {
-				await this.container.localPath.writeLocalRepoPath({ remoteUrl: remoteUrl }, repo.uri.fsPath);
+				await this.container.path.writeLocalRepoPath({ remoteUrl: remoteUrl }, repo.uri.fsPath);
 			}
 
 			await this._workspacesPathProvider.writeCloudWorkspaceDiskPathToMap(

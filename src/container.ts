@@ -535,7 +535,7 @@ export class Container {
 	}
 
 	private readonly _path: PathProvider;
-	get localPath() {
+	get path() {
 		return this._path;
 	}
 
