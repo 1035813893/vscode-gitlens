@@ -6800,7 +6800,7 @@
 			},
 			{
 				"command": "gitlens.views.workspaces.locateRepo",
-				"title": "Locate Repository",
+				"title": "Locate Repository...",
 				"category": "GitLens",
 				"icon": "$(folder-opened)"
 			},
@@ -10656,6 +10656,16 @@
 					"alt": "gitlens.copyRemoteBranchesUrl"
 				},
 				{
+					"command": "gitlens.views.workspaces.addRepo",
+					"when": "viewItem =~ /gitlens:workspace\\b(?=.*?\\b\\+cloud\\b)/",
+					"group": "1_gitlens_actions@1"
+				},
+				{
+					"command": "gitlens.views.workspaces.delete",
+					"when": "viewItem =~ /gitlens:workspace\\b(?=.*?\\b\\+cloud\\b)/",
+					"group": "1_gitlens_actions@2"
+				},
+				{
 					"command": "gitlens.views.switchToAnotherBranch",
 					"when": "!gitlens:readonly && !gitlens:untrusted && !gitlens:hasVirtualFolders && viewItem =~ /gitlens:branches\\b/",
 					"group": "1_gitlens_actions@1"
@@ -11781,6 +11791,16 @@
 					"command": "gitlens.views.workspaces.removeRepo",
 					"when": "viewItem =~ /gitlens:repository\\b(?=.*?\\b\\+workspace\\b)(?!.*?\\b\\+local\\b)/ || viewItem =~ /gitlens:workspaceMissingRepository\\b/",
 					"group": "inline@3"
+				},
+				{
+					"command": "gitlens.views.workspaces.locateRepo",
+					"when": "viewItem =~ /gitlens:repository\\b(?=.*?\\b\\+workspace\\b)(?!.*?\\b\\+local\\b)/ || viewItem =~ /gitlens:workspaceMissingRepository\\b/",
+					"group": "0_gitlens_actions@10"
+				},
+				{
+					"command": "gitlens.views.workspaces.removeRepo",
+					"when": "viewItem =~ /gitlens:repository\\b(?=.*?\\b\\+workspace\\b)(?!.*?\\b\\+local\\b)/ || viewItem =~ /gitlens:workspaceMissingRepository\\b/",
+					"group": "0_gitlens_actions@11"
 				},
 				{
 					"command": "gitlens.views.deleteStash",
