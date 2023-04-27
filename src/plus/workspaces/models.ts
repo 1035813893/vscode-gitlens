@@ -1,7 +1,16 @@
+import type { Repository } from '../../git/models/repository';
+
 export enum WorkspaceType {
 	Local = 'local',
 	Cloud = 'cloud',
 }
+
+export type CodeWorkspaceFileContents = {
+	folders: { path: string }[];
+	settings: { [key: string]: any };
+};
+
+export type WorkspaceRepositoriesByName = Map<string, Repository>;
 
 // Cloud Workspace types
 export class GKCloudWorkspace {

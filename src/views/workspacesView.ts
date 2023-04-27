@@ -106,6 +106,15 @@ export class WorkspacesView extends ViewBase<WorkspacesViewNode, WorkspacesViewC
 				this,
 			),
 			registerViewCommand(
+				this.getQualifiedCommand('open'),
+				async (node: WorkspaceNode) => {
+					await this.container.workspaces.saveAsCodeWorkspaceFile(node.workspaceId, node.type, {
+						open: true,
+					});
+				},
+				this,
+			),
+			registerViewCommand(
 				this.getQualifiedCommand('delete'),
 				async (node: WorkspaceNode) => {
 					await this.container.workspaces.deleteCloudWorkspace(node.workspaceId);

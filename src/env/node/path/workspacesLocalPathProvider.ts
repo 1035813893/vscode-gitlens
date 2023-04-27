@@ -3,7 +3,11 @@ import path from 'path';
 import { Uri, workspace } from 'vscode';
 import { getPlatform } from '@env/platform';
 import { localGKSharedDataFolder, localGKSharedDataLegacyFolder } from '../../../constants';
-import type { CloudWorkspacesPathMap, LocalWorkspaceFileData } from '../../../plus/workspaces/models';
+import type {
+	CloudWorkspacesPathMap,
+	CodeWorkspaceFileContents,
+	LocalWorkspaceFileData,
+} from '../../../plus/workspaces/models';
 import {
 	cloudWorkspaceDataFilePath,
 	localWorkspaceDataFilePath,
@@ -99,5 +103,22 @@ export class WorkspacesLocalPathProvider implements WorkspacesPathProvider {
 		}
 
 		return { workspaces: {} };
+	}
+
+	async writeCodeWorkspaceFile(uri: Uri, workspaceRepoFilePaths: string[]): Promise<boolean> {
+		const codeWorkspaceFileContents: CodeWorkspaceFileContents = {
+			folders: workspaceRepoFilePaths.map(repoFilePath => ({ path: repoFilePath })),
+			settings: {},
+		};
+
+		const outputData = new Uint8Array(Buffer.from(JSON.stringify(codeWorkspaceFileContents)));
+		try {
+			await workspace.fs.writeFile(uri, outputData);
+		} catch (error) {
+			Logger.error(error, 'writeCodeWorkspaceFile');
+			return false;
+		}
+
+		return true;
 	}
 }

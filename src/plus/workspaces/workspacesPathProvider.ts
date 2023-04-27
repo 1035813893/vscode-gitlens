@@ -1,3 +1,4 @@
+import type { Uri } from 'vscode';
 import type { LocalWorkspaceFileData } from './models';
 
 export interface WorkspacesPathProvider {
@@ -6,4 +7,6 @@ export interface WorkspacesPathProvider {
 	writeCloudWorkspaceDiskPathToMap(cloudWorkspaceId: string, repoId: string, repoLocalPath: string): Promise<void>;
 
 	getLocalWorkspaceData(): Promise<LocalWorkspaceFileData>;
+
+	writeCodeWorkspaceFile(uri: Uri, workspaceRepoFilePaths: string[]): Promise<boolean>;
 }

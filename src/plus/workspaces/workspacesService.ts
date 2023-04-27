@@ -1,11 +1,15 @@
 import type { Disposable } from 'vscode';
-import { window } from 'vscode';
+import { Uri, window } from 'vscode';
+import { encodeUtf8Hex } from '@env/hex';
 import { getSupportedWorkspacesPathProvider } from '@env/providers';
+import { Schemes } from '../../constants';
 import type { Container } from '../../container';
 import { RemoteResourceType } from '../../git/models/remoteResource';
 import type { Repository } from '../../git/models/repository';
 import { showRepositoryPicker } from '../../quickpicks/repositoryPicker';
 import { SubscriptionState } from '../../subscription';
+import { openWorkspace, OpenWorkspaceLocation } from '../../system/utils';
+import type { GitHubAuthorityMetadata } from '../remotehub';
 import type { ServerConnection } from '../subscription/serverConnection';
 import type {
 	AddWorkspaceRepoDescriptor,
@@ -13,6 +17,8 @@ import type {
 	CloudWorkspaceProviderType,
 	CloudWorkspaceRepositoryDescriptor,
 	LocalWorkspaceData,
+	LocalWorkspaceRepositoryDescriptor,
+	WorkspaceRepositoriesByName,
 	WorkspacesResponse,
 } from './models';
 import {
@@ -21,6 +27,7 @@ import {
 	cloudWorkspaceProviderTypeToRemoteProviderId,
 	GKCloudWorkspace,
 	GKLocalWorkspace,
+	WorkspaceType,
 } from './models';
 import { WorkspacesApi } from './workspacesApi';
 import type { WorkspacesPathProvider } from './workspacesPathProvider';
@@ -154,6 +161,10 @@ export class WorkspacesService implements Disposable {
 		return this._cloudWorkspaces?.find(workspace => workspace.id === workspaceId);
 	}
 
+	private getLocalWorkspace(workspaceId: string): GKLocalWorkspace | undefined {
+		return this._localWorkspaces?.find(workspace => workspace.id === workspaceId);
+	}
+
 	async getWorkspaces(options?: {
 		excludeCloudRepositories?: boolean;
 		resetCloudWorkspaces?: boolean;
@@ -259,10 +270,11 @@ export class WorkspacesService implements Disposable {
 		const quickpickLabelToProviderType: { [label: string]: CloudWorkspaceProviderInputType } = {
 			GitHub: CloudWorkspaceProviderInputType.GitHub,
 			'GitHub Enterprise': CloudWorkspaceProviderInputType.GitHubEnterprise,
-			GitLab: CloudWorkspaceProviderInputType.GitLab,
-			'GitLab Self-Managed': CloudWorkspaceProviderInputType.GitLabSelfHosted,
-			Bitbucket: CloudWorkspaceProviderInputType.Bitbucket,
-			Azure: CloudWorkspaceProviderInputType.Azure,
+			// TODO add support for these in the future
+			// GitLab: CloudWorkspaceProviderInputType.GitLab,
+			// 'GitLab Self-Managed': CloudWorkspaceProviderInputType.GitLabSelfHosted,
+			// Bitbucket: CloudWorkspaceProviderInputType.Bitbucket,
+			// Azure: CloudWorkspaceProviderInputType.Azure,
 		};
 
 		input.ignoreFocusOut = true;
@@ -632,4 +644,160 @@ export class WorkspacesService implements Disposable {
 			workspace.removeRepositories([repoName]);
 		} catch {}
 	}
+
+	async resolveWorkspaceRepositoriesByName(
+		workspaceId: string,
+		workspaceType: WorkspaceType,
+	): Promise<WorkspaceRepositoriesByName> {
+		const workspaceRepositoriesByName: WorkspaceRepositoriesByName = new Map<string, Repository>();
+		const workspace: GKCloudWorkspace | GKLocalWorkspace | undefined =
+			workspaceType === WorkspaceType.Cloud
+				? this.getCloudWorkspace(workspaceId)
+				: this.getLocalWorkspace(workspaceId);
+
+		if (workspace?.repositories == null) return workspaceRepositoriesByName;
+		for (const repository of workspace.repositories) {
+			const currentRepositories = this.container.git.repositories;
+			let repo: Repository | undefined = undefined;
+			let repoId: string | undefined = undefined;
+			let repoLocalPath: string | undefined = undefined;
+			let repoRemoteUrl: string | undefined = undefined;
+			let repoName: string | undefined = undefined;
+			let repoProvider: string | undefined = undefined;
+			let repoOwner: string | undefined = undefined;
+			if (workspaceType === WorkspaceType.Local) {
+				repoLocalPath = (repository as LocalWorkspaceRepositoryDescriptor).localPath;
+				// repo name in this case is the last part of the path after splitting from the path separator
+				repoName = (repository as LocalWorkspaceRepositoryDescriptor).name;
+				for (const currentRepository of currentRepositories) {
+					if (currentRepository.path.replaceAll('\\', '/') === repoLocalPath.replaceAll('\\', '/')) {
+						repo = currentRepository;
+					}
+				}
+			} else if (workspaceType === WorkspaceType.Cloud) {
+				repoId = (repository as CloudWorkspaceRepositoryDescriptor).id;
+				repoLocalPath = await this.getCloudWorkspaceRepoPath(workspaceId, repoId);
+				repoRemoteUrl = (repository as CloudWorkspaceRepositoryDescriptor).url;
+				repoName = (repository as CloudWorkspaceRepositoryDescriptor).name;
+				repoProvider = (repository as CloudWorkspaceRepositoryDescriptor).provider;
+				repoOwner = (repository as CloudWorkspaceRepositoryDescriptor).provider_organization_id;
+
+				if (repoLocalPath == null) {
+					const repoLocalPaths = await this.container.path.getLocalRepoPaths({
+						remoteUrl: repoRemoteUrl,
+						repoInfo: {
+							repoName: repoName,
+							provider: repoProvider,
+							owner: repoOwner,
+						},
+					});
+
+					// TODO@ramint: The user should be able to choose which path to use if multiple available
+					if (repoLocalPaths.length > 0) {
+						repoLocalPath = repoLocalPaths[0];
+					}
+				}
+
+				for (const currentRepository of currentRepositories) {
+					if (
+						repoLocalPath != null &&
+						currentRepository.path.replaceAll('\\', '/') === repoLocalPath.replaceAll('\\', '/')
+					) {
+						repo = currentRepository;
+					}
+				}
+			}
+
+			if (!repo) {
+				let uri: Uri | undefined = undefined;
+				if (repoLocalPath) {
+					uri = Uri.file(repoLocalPath);
+				} else if (repoRemoteUrl) {
+					uri = Uri.parse(repoRemoteUrl);
+					uri = uri.with({
+						scheme: Schemes.Virtual,
+						authority: encodeAuthority<GitHubAuthorityMetadata>('github'),
+						path: uri.path,
+					});
+				}
+				if (uri) {
+					repo = await this.container.git.getOrOpenRepository(uri, { closeOnOpen: true });
+				}
+			}
+
+			if (!repoName || !repo) {
+				continue;
+			}
+
+			workspaceRepositoriesByName.set(repoName, repo);
+		}
+
+		return workspaceRepositoriesByName;
+	}
+
+	async saveAsCodeWorkspaceFile(
+		workspaceId: string,
+		workspaceType: WorkspaceType,
+		options?: { open?: boolean },
+	): Promise<void> {
+		const workspace: GKCloudWorkspace | GKLocalWorkspace | undefined =
+			workspaceType === WorkspaceType.Cloud
+				? this.getCloudWorkspace(workspaceId)
+				: this.getLocalWorkspace(workspaceId);
+
+		if (workspace?.repositories == null) return;
+
+		const workspaceRepositoriesByName = await this.resolveWorkspaceRepositoriesByName(workspaceId, workspaceType);
+
+		if (workspaceRepositoriesByName.size === 0) {
+			void window.showErrorMessage('No repositories could be found in this workspace.', { modal: true });
+			return;
+		}
+
+		const workspaceFolderPaths: string[] = [];
+		for (const repo of workspaceRepositoriesByName.values()) {
+			if (!repo.virtual && repo.path != null) {
+				workspaceFolderPaths.push(repo.path);
+			}
+		}
+
+		if (workspaceFolderPaths.length < workspace.repositories.length) {
+			const confirmation = await window.showWarningMessage(
+				`Some repositories in this workspace could not be located locally. Do you want to continue?`,
+				{ modal: true },
+				{ title: 'Continue' },
+				{ title: 'Cancel', isCloseAffordance: true },
+			);
+			if (confirmation == null || confirmation.title == 'Cancel') return;
+		}
+
+		// Have the user choose a name and location for the new workspace file
+		const newWorkspaceUri = await window.showSaveDialog({
+			defaultUri: Uri.file(`${workspace.name}.code-workspace`),
+			filters: {
+				'Code Workspace': ['code-workspace'],
+			},
+			title: 'Choose a location for the new code workspace file',
+		});
+
+		if (newWorkspaceUri == null) return;
+
+		const created = await this._workspacesPathProvider.writeCodeWorkspaceFile(
+			newWorkspaceUri,
+			workspaceFolderPaths,
+		);
+
+		if (!created) {
+			void window.showErrorMessage('Could not create the new workspace file. Check logs for details');
+			return;
+		}
+
+		if (options?.open) {
+			openWorkspace(newWorkspaceUri, { location: OpenWorkspaceLocation.NewWindow });
+		}
+	}
+}
+
+function encodeAuthority<T>(scheme: string, metadata?: T): string {
+	return `${scheme}${metadata != null ? `+${encodeUtf8Hex(JSON.stringify(metadata))}` : ''}`;
 }
