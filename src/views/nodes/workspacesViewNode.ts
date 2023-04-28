@@ -22,10 +22,6 @@ export class WorkspacesViewNode extends ViewNode<WorkspacesView> {
 			const { cloudWorkspaces, cloudWorkspaceInfo, localWorkspaces, localWorkspaceInfo } =
 				await this.view.container.workspaces.getWorkspaces();
 			for (const workspace of cloudWorkspaces) {
-				if (workspace.repositories == null) {
-					await workspace.loadRepositories();
-				}
-
 				children.push(new WorkspaceNode(this.uri, this.view, this, workspace));
 			}
 

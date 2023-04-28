@@ -72,7 +72,11 @@ export class LocalPathProvider implements PathProvider, Disposable {
 		if (options.remoteUrl != null) {
 			await this._writeLocalRepoPath(options.remoteUrl, localPath);
 		}
-		if (options.repoInfo != null) {
+		if (
+			options.repoInfo?.provider != null &&
+			options.repoInfo?.owner != null &&
+			options.repoInfo?.repoName != null
+		) {
 			const { provider, owner, repoName } = options.repoInfo;
 			const key = `${provider}/${owner}/${repoName}`;
 			await this._writeLocalRepoPath(key, localPath);

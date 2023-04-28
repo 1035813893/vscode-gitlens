@@ -16,6 +16,10 @@ import type {
 	CloudWorkspaceData,
 	CloudWorkspaceProviderType,
 	CloudWorkspaceRepositoryDescriptor,
+	GetCloudWorkspaceRepositoriesResponse,
+	GetWorkspacesResponse,
+	LoadCloudWorkspacesResponse,
+	LoadLocalWorkspacesResponse,
 	LocalWorkspaceData,
 	LocalWorkspaceRepositoryDescriptor,
 	WorkspaceRepositoriesByName,
@@ -32,23 +36,6 @@ import {
 import { WorkspacesApi } from './workspacesApi';
 import type { WorkspacesPathProvider } from './workspacesPathProvider';
 
-export interface GetWorkspacesResponse {
-	cloudWorkspaces: GKCloudWorkspace[];
-	localWorkspaces: GKLocalWorkspace[];
-	cloudWorkspaceInfo: string | undefined;
-	localWorkspaceInfo: string | undefined;
-}
-
-interface LoadCloudWorkspacesResponse {
-	cloudWorkspaces: GKCloudWorkspace[] | undefined;
-	cloudWorkspaceInfo: string | undefined;
-}
-
-interface LoadLocalWorkspacesResponse {
-	localWorkspaces: GKLocalWorkspace[] | undefined;
-	localWorkspaceInfo: string | undefined;
-}
-
 export class WorkspacesService implements Disposable {
 	private _cloudWorkspaces: GKCloudWorkspace[] | undefined = undefined;
 	private _localWorkspaces: GKLocalWorkspace[] | undefined = undefined;
@@ -56,16 +43,21 @@ export class WorkspacesService implements Disposable {
 	private _workspacesPathProvider: WorkspacesPathProvider;
 
 	// TODO@ramint Add error handling/logging when this is used.
-	private readonly _getCloudWorkspaceRepos: (
-		workspaceId: string,
-	) => Promise<CloudWorkspaceRepositoryDescriptor[] | undefined> = async (workspaceId: string) => {
-		try {
-			const workspaceRepos = await this._workspacesApi.getWorkspaceRepositories(workspaceId);
-			return workspaceRepos?.data?.project?.provider_data?.repositories?.nodes;
-		} catch {
-			return undefined;
-		}
-	};
+	private readonly _getCloudWorkspaceRepos: (workspaceId: string) => Promise<GetCloudWorkspaceRepositoriesResponse> =
+		async (workspaceId: string) => {
+			try {
+				const workspaceRepos = await this._workspacesApi.getWorkspaceRepositories(workspaceId);
+				return {
+					repositories: workspaceRepos?.data?.project?.provider_data?.repositories?.nodes ?? [],
+					repositoriesInfo: undefined,
+				};
+			} catch {
+				return {
+					repositories: undefined,
+					repositoriesInfo: 'Failed to load repositories for this workspace.',
+				};
+			}
+		};
 
 	constructor(private readonly container: Container, private readonly server: ServerConnection) {
 		this._workspacesApi = new WorkspacesApi(this.container, this.server);
@@ -110,7 +102,12 @@ export class WorkspacesService implements Disposable {
 					continue;
 				}
 
-				const repositories: CloudWorkspaceRepositoryDescriptor[] = workspace.provider_data?.repositories?.nodes;
+				let repositories: CloudWorkspaceRepositoryDescriptor[] | undefined =
+					workspace.provider_data?.repositories?.nodes;
+				if (repositories == null && !excludeRepositories) {
+					repositories = [];
+				}
+
 				cloudWorkspaces.push(
 					new GKCloudWorkspace(
 						workspace.id,
@@ -244,7 +241,10 @@ export class WorkspacesService implements Disposable {
 		}
 
 		if (workspaceId != null) {
-			const workspaceRepo = this.getCloudWorkspace(workspaceId)?.getRepository(repo.name);
+			let workspaceRepo = this.getCloudWorkspace(workspaceId)?.getRepository(repo.name);
+			if (workspaceRepo == null) {
+				workspaceRepo = this.getCloudWorkspace(workspaceId)?.getRepository(repoName);
+			}
 			if (workspaceRepo != null) {
 				await this.container.path.writeLocalRepoPath(
 					{

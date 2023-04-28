@@ -2,11 +2,10 @@ import { ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { GitUri } from '../../git/gitUri';
 import type {
 	CloudWorkspaceRepositoryDescriptor,
-	GKLocalWorkspace,
 	LocalWorkspaceRepositoryDescriptor,
 	WorkspaceRepositoriesByName,
 } from '../../plus/workspaces/models';
-import { GKCloudWorkspace, WorkspaceType } from '../../plus/workspaces/models';
+import { GKCloudWorkspace, GKLocalWorkspace, WorkspaceType } from '../../plus/workspaces/models';
 import type { WorkspacesView } from '../workspacesView';
 import { MessageNode } from './common';
 import { RepositoryNode } from './repositoryNode';
@@ -50,9 +49,9 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 	}
 
 	private async getRepositories(): Promise<
-		CloudWorkspaceRepositoryDescriptor[] | LocalWorkspaceRepositoryDescriptor[]
+		CloudWorkspaceRepositoryDescriptor[] | LocalWorkspaceRepositoryDescriptor[] | undefined
 	> {
-		return Promise.resolve(this._workspace?.repositories ?? []);
+		return Promise.resolve(this._workspace?.repositories);
 	}
 
 	private _children: ViewNode[] | undefined;
@@ -60,29 +59,46 @@ export class WorkspaceNode extends ViewNode<WorkspacesView> {
 	async getChildren(): Promise<ViewNode[]> {
 		if (this._children == null) {
 			this._children = [];
-			const repositories = await this.getRepositories();
-			if (repositories.length === 0) {
-				this._children.push(new MessageNode(this.view, this, 'No repositories in this workspace.'));
-				return this._children;
+			let repositories: CloudWorkspaceRepositoryDescriptor[] | LocalWorkspaceRepositoryDescriptor[] | undefined;
+			let repositoryInfo: string | undefined;
+			if (this.workspace instanceof GKLocalWorkspace) {
+				repositories = (await this.getRepositories()) ?? [];
+			} else {
+				const { repositories: repos, repositoriesInfo: repoInfo } =
+					await this.workspace.getOrLoadRepositories();
+				repositories = repos;
+				repositoryInfo = repoInfo;
 			}
 
-			const reposByName: WorkspaceRepositoriesByName =
-				await this.view.container.workspaces.resolveWorkspaceRepositoriesByName(this.workspaceId, this.type);
-
-			for (const repository of repositories) {
-				const repo = reposByName.get(repository.name);
-				if (!repo) {
-					this._children.push(
-						new WorkspaceMissingRepositoryNode(this.view, this, this.workspaceId, repository.name),
+			if (repositories?.length === 0) {
+				this._children.push(new MessageNode(this.view, this, 'No repositories in this workspace.'));
+				return this._children;
+			} else if (repositories?.length) {
+				const reposByName: WorkspaceRepositoriesByName =
+					await this.view.container.workspaces.resolveWorkspaceRepositoriesByName(
+						this.workspaceId,
+						this.type,
 					);
-					continue;
-				}
 
-				this._children.push(
-					new RepositoryNode(GitUri.fromRepoPath(repo.path), this.view, this, repo, {
-						workspace: this._workspace,
-					}),
-				);
+				for (const repository of repositories) {
+					const repo = reposByName.get(repository.name);
+					if (!repo) {
+						this._children.push(
+							new WorkspaceMissingRepositoryNode(this.view, this, this.workspaceId, repository.name),
+						);
+						continue;
+					}
+
+					this._children.push(
+						new RepositoryNode(GitUri.fromRepoPath(repo.path), this.view, this, repo, {
+							workspace: this._workspace,
+						}),
+					);
+				}
+			}
+
+			if (repositoryInfo != null) {
+				this._children.push(new MessageNode(this.view, this, repositoryInfo));
 			}
 		}
 

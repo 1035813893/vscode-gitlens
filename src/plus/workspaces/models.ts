@@ -12,6 +12,28 @@ export type CodeWorkspaceFileContents = {
 
 export type WorkspaceRepositoriesByName = Map<string, Repository>;
 
+export interface GetWorkspacesResponse {
+	cloudWorkspaces: GKCloudWorkspace[];
+	localWorkspaces: GKLocalWorkspace[];
+	cloudWorkspaceInfo: string | undefined;
+	localWorkspaceInfo: string | undefined;
+}
+
+export interface LoadCloudWorkspacesResponse {
+	cloudWorkspaces: GKCloudWorkspace[] | undefined;
+	cloudWorkspaceInfo: string | undefined;
+}
+
+export interface LoadLocalWorkspacesResponse {
+	localWorkspaces: GKLocalWorkspace[] | undefined;
+	localWorkspaceInfo: string | undefined;
+}
+
+export interface GetCloudWorkspaceRepositoriesResponse {
+	repositories: CloudWorkspaceRepositoryDescriptor[] | undefined;
+	repositoriesInfo: string | undefined;
+}
+
 // Cloud Workspace types
 export class GKCloudWorkspace {
 	private readonly _type: WorkspaceType = WorkspaceType.Cloud;
@@ -25,7 +47,7 @@ export class GKCloudWorkspace {
 		name: string,
 		organizationId: string | undefined,
 		provider: CloudWorkspaceProviderType,
-		private readonly getReposFn: (workspaceId: string) => Promise<CloudWorkspaceRepositoryDescriptor[] | undefined>,
+		private readonly getReposFn: (workspaceId: string) => Promise<GetCloudWorkspaceRepositoriesResponse>,
 		repositories?: CloudWorkspaceRepositoryDescriptor[],
 	) {
 		this._id = id;
@@ -81,10 +103,15 @@ export class GKCloudWorkspace {
 		this._repositories = this._repositories.filter(r => !repoNames.includes(r.name));
 	}
 
-	async loadRepositories(reset: boolean = false): Promise<void> {
-		if (this._repositories != null && !reset) return;
+	async getOrLoadRepositories(): Promise<GetCloudWorkspaceRepositoriesResponse> {
+		if (this._repositories != null) return { repositories: this._repositories, repositoriesInfo: undefined };
 
-		this._repositories = await this.getReposFn(this._id);
+		const getResponse = await this.getReposFn(this._id);
+		if (getResponse.repositories != null) {
+			this._repositories = getResponse.repositories;
+		}
+
+		return getResponse;
 	}
 }
 
