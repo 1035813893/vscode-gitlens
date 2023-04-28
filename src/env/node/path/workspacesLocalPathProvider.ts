@@ -106,10 +106,16 @@ export class WorkspacesLocalPathProvider implements WorkspacesPathProvider {
 	}
 
 	async writeCodeWorkspaceFile(uri: Uri, workspaceRepoFilePaths: string[]): Promise<boolean> {
-		const codeWorkspaceFileContents: CodeWorkspaceFileContents = {
-			folders: workspaceRepoFilePaths.map(repoFilePath => ({ path: repoFilePath })),
-			settings: {},
-		};
+		let codeWorkspaceFileContents: CodeWorkspaceFileContents;
+		let data;
+		try {
+			data = await workspace.fs.readFile(uri);
+			codeWorkspaceFileContents = JSON.parse(data.toString()) as CodeWorkspaceFileContents;
+		} catch (error) {
+			codeWorkspaceFileContents = { folders: [], settings: {} };
+		}
+
+		codeWorkspaceFileContents.folders = workspaceRepoFilePaths.map(repoFilePath => ({ path: repoFilePath }));
 
 		const outputData = new Uint8Array(Buffer.from(JSON.stringify(codeWorkspaceFileContents)));
 		try {
